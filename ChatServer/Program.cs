@@ -4,7 +4,11 @@
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("Hello, World!");
+            var config_result = Config.Inst.Load();
+            if (config_result == false)
+            {
+                Console.WriteLine("Load Config Failed.");
+            }
         }
     }
 }
