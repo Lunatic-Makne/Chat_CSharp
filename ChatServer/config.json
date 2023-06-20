@@ -1,5 +1,6 @@
 {
   "network": {
-    "listen_port": "8282"
+    "listen_port": "8282",
+    "listen_backlog": 100
   }
 }

@@ -12,10 +12,12 @@ namespace ChatServer
             }
 
             var network_init_result = NetworkManager.Inst.Initialize();
-            if (network_init_result.Result == false)
+            if (network_init_result == false)
             {
                 Console.WriteLine("Network Initialize Failed.");
             }
+
+            NetworkManager.Inst.Run();
         }
     }
 }

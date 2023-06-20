@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Net;
 using System.Net.Sockets;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ChatServer.Network
 {
@@ -14,80 +15,83 @@ namespace ChatServer.Network
         private static readonly Lazy<NetworkManager> _inst = new Lazy<NetworkManager>(() => new NetworkManager());
         public static NetworkManager Inst { get { return _inst.Value; } }
 
+        [AllowNull]
         private Socket ListenSocket { get; set; }
 
-        public async Task<bool> Initialize()
+        public bool Initialize()
         {
             ListenSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            using (ListenSocket)
+            var ep = new IPEndPoint(IPAddress.Any, Config.Inst.Info.network.listen_port);
+            ListenSocket.Bind(ep);
+
+            ListenSocket.Listen(Config.Inst.Info.network.listen_backlog);
+
+            Console.WriteLine($"[NetworkManager] Start Listen. port[{ep.Port}]");
+
+            return true;
+        }
+
+        public void Run()
+        {
+            ListenSocket.AcceptAsync(new AcceptEvent(ListenSocket));
+
+            while (true)
             {
-                var ep = new IPEndPoint(IPAddress.Any, Config.Inst.Info.network.listen_port);
-                ListenSocket.Bind(ep);
+                var inputed = Console.ReadKey();
+                
+                if (inputed.Key == ConsoleKey.Escape)
+                {
+                    Console.WriteLine($"Exit Server. Registerd Event Count[{SocketEventDic.Count}]");
+                    break;
+                }
+            }
+        }
 
-                ListenSocket.Listen();
+        #region Socket Event Manage
+        private long _CurrentSocketEventID = 0;
+        public long GenSocketEventID()
+        {
+            return Interlocked.Increment(ref _CurrentSocketEventID);
+        }
 
-                Console.WriteLine($"[NetworkManager] Start Listen. port[{ep.Port}]");
+        private Dictionary<long, ReceiveEvent> SocketEventDic = new Dictionary<long, ReceiveEvent>();
 
-                await MakeAcceptTask();                
+        public bool RegisterSocketEvent(long eventID, ReceiveEvent conn)
+        {
+            if (SocketEventDic.ContainsKey(eventID))
+            {
+                return false;
+            }
+            else
+            {
+                SocketEventDic.Add(eventID, conn);
             }
 
             return true;
         }
 
-        public async Task MakeAcceptTask()
+        public bool UnregisterConnection(long eventID)
         {
-            var task = new Task(() =>
+            if (SocketEventDic.ContainsKey(eventID) == false)
             {
-                try
-                {
-                    while (true)
-                    {
-                        var client = ListenSocket.Accept();
-                        if (client == null) { break; }
+                return false;
+            }
 
-                        var client_ep = client.RemoteEndPoint as IPEndPoint;
-                        Console.WriteLine($"[NetworkManager] Accept Client. ep[{client_ep}]");
-
-                        client.Send(Encoding.ASCII.GetBytes("Welcome.\r\n"));
-
-                        var builder = new StringBuilder();
-
-                        using (client)
-                        {
-                            while (true)
-                            {
-                                var binary = new Byte[1024];
-                                client.Receive(binary);
-
-                                var data = Encoding.ASCII.GetString(binary);
-                                builder.Append(data.Trim('\0'));
-
-                                if (builder.Length > 2 && builder[builder.Length - 2] == '\r' && builder[builder.Length - 1] == '\n')
-                                {
-                                    data = builder.ToString().Replace("\n", "").Replace("\r", "");
-                                    if (String.IsNullOrWhiteSpace(data)) { continue; }
-
-                                    if ("EXIT".Equals(data, StringComparison.OrdinalIgnoreCase)) { break; }
-
-                                    Console.WriteLine("Message = " + data);
-                                    builder.Clear();
-
-                                    client.Send(Encoding.ASCII.GetBytes("ECHO : " + data + "\r\n"));
-                                }
-                            }
-
-                            Console.WriteLine($"[NetworkManager] Disconnected. Client[{client_ep}");
-                        }
-                    }
-                }
-                catch (SocketException ex)
-                {
-                    Console.Write(ex.ToString());
-                }
-            });
-
-            task.Start();
-            await task;
+            SocketEventDic.Remove(eventID);
+            return true;
         }
+
+        public ReceiveEvent? GetConnection(long eventID)
+        {
+            if (SocketEventDic.ContainsKey(eventID) == false)
+            {
+                return null;
+            }
+
+            return SocketEventDic[eventID];
+        }
+        #endregion Socket Event Manage
+
+
     }
 }

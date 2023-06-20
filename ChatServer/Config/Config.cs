@@ -14,7 +14,10 @@ namespace ChatServer
     {
         public struct NetworkInfo
         {
-            public short listen_port;
+            public NetworkInfo() { }
+
+            public short listen_port { get; set; } = 8282;
+            public int listen_backlog { get; set; } = 100;
         }
 
         public NetworkInfo network;
