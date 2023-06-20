@@ -1,35 +1,29 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
 using Newtonsoft.Json;
-using System.Diagnostics;
-using Newtonsoft.Json.Linq;
 
-namespace ChatServer
+namespace ChatClient
 {
     public struct ConfigInfo
     {
-        public struct NetworkInfo
-        {
-            public short listen_port;
-        }
-
-        public NetworkInfo network;
+        public string target_ip;
+        public short target_port;
     }
 
-    public sealed class Config
+    public class Config
     {
         private Config() { }
-        private static readonly Lazy<Config> _inst = new Lazy<Config>(() => new Config());
-        public static Config Inst { get { return _inst.Value; } }
+        private static readonly Lazy<Config> _Inst = new Lazy<Config>(() => new Config());
+        public static Config Inst { get { return _Inst.Value; } }
 
         private string _config_file_name = "config.json";
 
-        private string config_file_path { get { return Directory.GetCurrentDirectory() + "\\" +_config_file_name; } }
-
+        private string config_file_path { get { return Directory.GetCurrentDirectory() + "\\" + _config_file_name; } }
         public ConfigInfo Info { get; private set; }
 
         public bool Load()
