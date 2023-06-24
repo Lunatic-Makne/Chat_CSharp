@@ -5,7 +5,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ChatServer.Network
+namespace NetworkCore.Event
 {
     public class AcceptEvent : SocketAsyncEventArgs
     {

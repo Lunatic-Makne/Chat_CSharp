@@ -2,7 +2,7 @@
 using System.Net.Sockets;
 using System.Text;
 
-namespace ChatServer.Network
+namespace NetworkCore.Event
 {
     public class ReceiveEvent : SocketAsyncEventArgs
     {
@@ -12,7 +12,7 @@ namespace ChatServer.Network
         public ReceiveEvent(TCPConnection connection)
         {
             _Connection = connection;
-            ClearBuffer();
+            base.SetBuffer(new byte[MAX_BUFFER_SIZE], 0, MAX_BUFFER_SIZE);
             base.UserToken = _Connection;
             base.Completed += this.EventCompleted;
         }
@@ -20,11 +20,6 @@ namespace ChatServer.Network
         private void EventCompleted(object? sender, SocketAsyncEventArgs e)
         {
             _Connection.ProcessReceive(this);
-        }
-
-        public void ClearBuffer()
-        {
-            SetBuffer(new byte[MAX_BUFFER_SIZE], 0, MAX_BUFFER_SIZE);
         }
     }
 }

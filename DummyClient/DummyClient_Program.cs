@@ -1,17 +1,59 @@
 ﻿using ChatClient;
+using NetworkCore;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 
 namespace DummyClient
 {
+    class ClientConnection : TCPConnection
+    {
+        public override void OnConnected(EndPoint ep)
+        {
+            
+        }
+
+        public override void OnDisconnected(EndPoint ep)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void OnRecv(ArraySegment<byte> buffer)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void OnSend(int byte_transferred)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
     internal class DummyClient_Program
     {
+        public static void SocketConnected(Socket? socket) 
+        {
+            if (socket == null) { return; }
+
+            Console.WriteLine($"Connect to [{socket.RemoteEndPoint}]");
+
+            byte[] send_buff = Encoding.UTF8.GetBytes("Hi!");
+            var send_bytes = socket.Send(send_buff);
+
+            byte[] recv_buff = new byte[8 * 1024];
+            var recv_bytes = socket.Receive(recv_buff);
+            var recv_message = Encoding.UTF8.GetString(recv_buff);
+            Console.WriteLine($"[S2C] : {recv_message}");
+
+            socket.Shutdown(SocketShutdown.Both);
+            socket.Close();
+        }
+
         static void Main(string[] args)
         {
             if (Config.Inst.Load() == false)
             {
-                Console.WriteLine("Load Config failed.");
+                Console.WriteLine("[DummyClient] Load Config failed.");
                 return;
             }
 
@@ -25,21 +67,8 @@ namespace DummyClient
             {
                 try
                 {
-                    var socket = new Socket(ep.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-                    socket.Connect(ep);
-
-                    Console.WriteLine($"Connect to [{ep.ToString()}]");
-
-                    byte[] send_buff = Encoding.UTF8.GetBytes("Hi!");
-                    var send_bytes = socket.Send(send_buff);
-
-                    byte[] recv_buff = new byte[8 * 1024];
-                    var recv_bytes = socket.Receive(recv_buff);
-                    var recv_message = Encoding.UTF8.GetString(recv_buff);
-                    Console.WriteLine($"[S2C] : {recv_message}");
-
-                    socket.Shutdown(SocketShutdown.Both);
-                    socket.Close();
+                    NetworkManager.Inst.Connect(ep, () => { return new ClientConnection(); }, SocketConnected);
+                    Thread.Sleep(500);
                 }
                 catch (Exception ex)
                 {

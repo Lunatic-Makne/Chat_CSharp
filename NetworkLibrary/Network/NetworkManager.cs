@@ -6,34 +6,39 @@ using System.Threading.Tasks;
 using System.Net;
 using System.Net.Sockets;
 using System.Diagnostics.CodeAnalysis;
+using NetworkCore.Event;
 
-namespace ChatServer.Network
+namespace NetworkCore
 {
-    class NetworkManager
+    public class NetworkManager
     {
         private NetworkManager() { }
         private static readonly Lazy<NetworkManager> _inst = new Lazy<NetworkManager>(() => new NetworkManager());
         public static NetworkManager Inst { get { return _inst.Value; } }
 
         [AllowNull]
-        private Socket _ListenSocket { get; set; }
+        private Socket _ListenSocket;
 
-        public bool Initialize()
+        [AllowNull]
+        Func<TCPConnection> _ConnectionFactory;
+        public bool Listen(Func<TCPConnection> factory, short listen_port, int listen_backlog)
         {
+            _ConnectionFactory = factory;
+
             try
             {
                 // DNS
                 var host = Dns.GetHostEntry(Dns.GetHostName());
                 var address_list = host.AddressList;
                 if (address_list.Length < 1) { return false; }
-                var ep = new IPEndPoint(host.AddressList[0], Config.Inst.Info.network.listen_port);
+                var ep = new IPEndPoint(host.AddressList[0], listen_port);
 
                 // Bind
                 _ListenSocket = new Socket(ep.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
                 _ListenSocket.Bind(ep);
 
                 // Listen Start
-                _ListenSocket.Listen(Config.Inst.Info.network.listen_backlog);
+                _ListenSocket.Listen(listen_backlog);
 
                 Console.WriteLine($"[NetworkManager] Start Listen. port[{ep.Port}]");
             }
@@ -45,22 +50,32 @@ namespace ChatServer.Network
             return true;
         }
 
-        public void OnConnectionStart(TCPConnection conn)
+        public bool Connect(IPEndPoint ep, Func<TCPConnection> factory, Action<Socket?> on_success)
         {
-            conn.Send("Welcome!");
-        }
+            _ConnectionFactory = factory;
 
+            var connect_event = new ConnectEvent(ep, on_success);
+            return true;
+        }
+        
         public void OnAccept(Socket? socket)
         {
+            if (_ConnectionFactory == null)
+            {
+                Console.WriteLine($"[{GetType().Name}] OnAccept failed. _ConnectionFactory is null.");
+                return;
+            }
             try
             {
                 if (socket != null)
                 {
                     var conn_id = GenSocketEventID();
-                    var conn = new TCPConnection(socket, conn_id);
-                    conn.OnStart += OnConnectionStart;
+                    var conn = _ConnectionFactory.Invoke();
+                    if (conn == null) { return; }
 
-                    if (RegisterSocketEvent(conn_id, conn) == false)
+                    conn.SetSocket(socket);
+
+                    if (RegisterTCPConnection(conn_id, conn) == false)
                     {
                         Console.WriteLine($"Register Connection Failed. Addr[{conn.RemoteAddr}], ConnID[{conn_id}]");
                         conn.CloseConnection();
@@ -102,7 +117,7 @@ namespace ChatServer.Network
         private object _ConnectionLock = new object();
         private Dictionary<long, TCPConnection> ConnectionDic = new Dictionary<long, TCPConnection>();
 
-        public bool RegisterSocketEvent(long conn_id, TCPConnection conn)
+        public bool RegisterTCPConnection(long conn_id, TCPConnection conn)
         {
             lock (_ConnectionLock)
             {
@@ -119,7 +134,7 @@ namespace ChatServer.Network
             return true;
         }
 
-        public bool UnregisterConnection(long conn_id)
+        public bool UnregisterTCPConnection(long conn_id)
         {
             lock (_ConnectionLock)
             {
@@ -134,7 +149,7 @@ namespace ChatServer.Network
             return true;
         }
 
-        public TCPConnection? GetConnection(long conn_id)
+        public TCPConnection? GetTCPConnection(long conn_id)
         {
             lock (_ConnectionLock)
             {
@@ -147,7 +162,7 @@ namespace ChatServer.Network
             }
         }
 
-        public int GetTotalClientConnectionCount() { return ConnectionDic.Count; }
+        public int GetTotalTCPConnectionCount() { return ConnectionDic.Count; }
         #endregion Socket Event Manage
 
 

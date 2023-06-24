@@ -1,4 +1,5 @@
-﻿using ChatServer.Network;
+﻿using ChatServer.Connection;
+using NetworkCore;
 
 namespace ChatServer
 {
@@ -8,13 +9,13 @@ namespace ChatServer
         {
             if (Config.Inst.Load() == false)
             {
-                Console.WriteLine("Load Config Failed.");
+                Console.WriteLine("[Chat Server] Load Config Failed.");
             }
 
-            var network_init_result = NetworkManager.Inst.Initialize();
-            if (network_init_result == false)
+            var listen_result = NetworkManager.Inst.Listen(() => { return new UserConnection(); }, Config.Inst.Info.network.listen_port, Config.Inst.Info.network.listen_backlog);
+            if (listen_result == false)
             {
-                Console.WriteLine("Network Initialize Failed.");
+                Console.WriteLine("[NetworkManager] Listen Failed.");
             }
 
             NetworkManager.Inst.Run();
@@ -25,7 +26,7 @@ namespace ChatServer
 
                 if (inputed.Key == ConsoleKey.Escape)
                 {
-                    Console.WriteLine($"[NetworkManager] Exit Server. Registerd Event Count[{NetworkManager.Inst.GetTotalClientConnectionCount()}]");
+                    Console.WriteLine($"[Chat Server] Exit Server. Registerd Event Count[{NetworkManager.Inst.GetTotalTCPConnectionCount()}]");
                     break;
                 }
             }
