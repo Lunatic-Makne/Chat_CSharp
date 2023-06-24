@@ -18,6 +18,19 @@ namespace ChatServer
             }
 
             NetworkManager.Inst.Run();
+
+            while (true)
+            {
+                var inputed = Console.ReadKey();
+
+                if (inputed.Key == ConsoleKey.Escape)
+                {
+                    Console.WriteLine($"[NetworkManager] Exit Server. Registerd Event Count[{NetworkManager.Inst.GetTotalClientConnectionCount()}]");
+                    break;
+                }
+            }
+
+            NetworkManager.Inst.Close();
         }
     }
 }

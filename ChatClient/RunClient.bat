@@ -1,0 +1,1 @@
+start bin\Debug\net7.0\ChatClient.exe

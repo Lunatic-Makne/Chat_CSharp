@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "DummyClient": {
+      "commandName": "Project",
+      "workingDirectory": "C:\\Dev\\Chat_CSharp\\DummyClient"
+    }
+  }
+}

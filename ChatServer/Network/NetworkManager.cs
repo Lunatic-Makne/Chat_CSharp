@@ -16,35 +16,80 @@ namespace ChatServer.Network
         public static NetworkManager Inst { get { return _inst.Value; } }
 
         [AllowNull]
-        private Socket ListenSocket { get; set; }
+        private Socket _ListenSocket { get; set; }
 
         public bool Initialize()
         {
-            ListenSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            var ep = new IPEndPoint(IPAddress.Any, Config.Inst.Info.network.listen_port);
-            ListenSocket.Bind(ep);
+            try
+            {
+                // DNS
+                var host = Dns.GetHostEntry(Dns.GetHostName());
+                var address_list = host.AddressList;
+                if (address_list.Length < 1) { return false; }
+                var ep = new IPEndPoint(host.AddressList[0], Config.Inst.Info.network.listen_port);
 
-            ListenSocket.Listen(Config.Inst.Info.network.listen_backlog);
+                // Bind
+                _ListenSocket = new Socket(ep.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+                _ListenSocket.Bind(ep);
 
-            Console.WriteLine($"[NetworkManager] Start Listen. port[{ep.Port}]");
+                // Listen Start
+                _ListenSocket.Listen(Config.Inst.Info.network.listen_backlog);
+
+                Console.WriteLine($"[NetworkManager] Start Listen. port[{ep.Port}]");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+            }
 
             return true;
         }
 
-        public void Run()
+        public void OnConnectionStart(TCPConnection conn)
         {
-            ListenSocket.AcceptAsync(new AcceptEvent(ListenSocket));
+            conn.Send("Welcome!");
+        }
 
-            while (true)
+        public void OnAccept(Socket? socket)
+        {
+            try
             {
-                var inputed = Console.ReadKey();
-                
-                if (inputed.Key == ConsoleKey.Escape)
+                if (socket != null)
                 {
-                    Console.WriteLine($"Exit Server. Registerd Event Count[{SocketEventDic.Count}]");
-                    break;
+                    var conn_id = GenSocketEventID();
+                    var conn = new TCPConnection(socket, conn_id);
+                    conn.OnStart += OnConnectionStart;
+
+                    if (RegisterSocketEvent(conn_id, conn) == false)
+                    {
+                        Console.WriteLine($"Register Connection Failed. Addr[{conn.RemoteAddr}], ConnID[{conn_id}]");
+                        conn.CloseConnection();
+                    }
+                    else
+                    {
+                        conn.Start();
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("[NetworkManager] OnAccept failed. socket is null.");
                 }
             }
+            catch (Exception ex) { Console.WriteLine( ex.ToString()); }
+        }
+
+        public void Run()
+        {
+            var accept_event = new AcceptEvent(_ListenSocket, OnAccept);
+            var pending = _ListenSocket.AcceptAsync(accept_event);
+            if (pending == false)
+            {
+                accept_event.Accepted(null, accept_event);
+            }
+        }
+
+        public void Close()
+        {
         }
 
         #region Socket Event Manage
@@ -54,42 +99,55 @@ namespace ChatServer.Network
             return Interlocked.Increment(ref _CurrentSocketEventID);
         }
 
-        private Dictionary<long, ReceiveEvent> SocketEventDic = new Dictionary<long, ReceiveEvent>();
+        private object _ConnectionLock = new object();
+        private Dictionary<long, TCPConnection> ConnectionDic = new Dictionary<long, TCPConnection>();
 
-        public bool RegisterSocketEvent(long eventID, ReceiveEvent conn)
+        public bool RegisterSocketEvent(long conn_id, TCPConnection conn)
         {
-            if (SocketEventDic.ContainsKey(eventID))
+            lock (_ConnectionLock)
             {
-                return false;
-            }
-            else
-            {
-                SocketEventDic.Add(eventID, conn);
+                if (ConnectionDic.ContainsKey(conn_id))
+                {
+                    return false;
+                }
+                else
+                {
+                    ConnectionDic.Add(conn_id, conn);
+                }
             }
 
             return true;
         }
 
-        public bool UnregisterConnection(long eventID)
+        public bool UnregisterConnection(long conn_id)
         {
-            if (SocketEventDic.ContainsKey(eventID) == false)
+            lock (_ConnectionLock)
             {
-                return false;
-            }
+                if (ConnectionDic.ContainsKey(conn_id) == false)
+                {
+                    return false;
+                }
 
-            SocketEventDic.Remove(eventID);
+                ConnectionDic.Remove(conn_id);
+            }
+            
             return true;
         }
 
-        public ReceiveEvent? GetConnection(long eventID)
+        public TCPConnection? GetConnection(long conn_id)
         {
-            if (SocketEventDic.ContainsKey(eventID) == false)
+            lock (_ConnectionLock)
             {
-                return null;
-            }
+                if (ConnectionDic.ContainsKey(conn_id) == false)
+                {
+                    return null;
+                }
 
-            return SocketEventDic[eventID];
+                return ConnectionDic[conn_id];
+            }
         }
+
+        public int GetTotalClientConnectionCount() { return ConnectionDic.Count; }
         #endregion Socket Event Manage
 
 
