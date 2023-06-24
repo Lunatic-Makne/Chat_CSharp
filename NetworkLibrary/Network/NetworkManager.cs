@@ -19,12 +19,11 @@ namespace NetworkCore
         [AllowNull]
         private Socket _ListenSocket;
 
-        [AllowNull]
         Func<TCPConnection> _ConnectionFactory;
-        public bool Listen(Func<TCPConnection> factory, short listen_port, int listen_backlog)
-        {
-            _ConnectionFactory = factory;
+        public Func<TCPConnection> ConnectionFactory { get { return _ConnectionFactory; } set { _ConnectionFactory = value; } }
 
+        public bool Listen(short listen_port, int listen_backlog)
+        {
             try
             {
                 // DNS
@@ -50,52 +49,55 @@ namespace NetworkCore
             return true;
         }
 
-        public bool Connect(IPEndPoint ep, Func<TCPConnection> factory, Action<Socket?> on_success)
-        {
-            _ConnectionFactory = factory;
-
-            var connect_event = new ConnectEvent(ep, on_success);
-            return true;
-        }
-        
-        public void OnAccept(Socket? socket)
+        public void OnConnect(Socket? socket)
         {
             if (_ConnectionFactory == null)
             {
                 Console.WriteLine($"[{GetType().Name}] OnAccept failed. _ConnectionFactory is null.");
                 return;
             }
+
+            if (socket == null)
+            {
+                Console.WriteLine($"[{GetType().Name}] OnAccept failed. socket is null.");
+                return;
+            }
+
             try
             {
-                if (socket != null)
+                var conn_id = PickConnectionID();
+                var conn = _ConnectionFactory.Invoke();
+                if (conn == null) { return; }
+
+                conn.SetSocket(socket);
+
+                if (RegisterTCPConnection(conn_id, conn) == false)
                 {
-                    var conn_id = GenSocketEventID();
-                    var conn = _ConnectionFactory.Invoke();
-                    if (conn == null) { return; }
-
-                    conn.SetSocket(socket);
-
-                    if (RegisterTCPConnection(conn_id, conn) == false)
-                    {
-                        Console.WriteLine($"Register Connection Failed. Addr[{conn.RemoteAddr}], ConnID[{conn_id}]");
-                        conn.CloseConnection();
-                    }
-                    else
-                    {
-                        conn.Start();
-                    }
+                    Console.WriteLine($"Register Connection Failed. Addr[{conn.RemoteAddr}], ConnID[{conn_id}]");
+                    conn.CloseConnection();
                 }
                 else
                 {
-                    Console.WriteLine("[NetworkManager] OnAccept failed. socket is null.");
+                    conn.Start();
                 }
             }
-            catch (Exception ex) { Console.WriteLine( ex.ToString()); }
+            catch (Exception ex) 
+            { 
+                Console.WriteLine(ex.ToString()); 
+            }
         }
 
-        public void Run()
+        public bool Connect(IPEndPoint ep)
         {
-            var accept_event = new AcceptEvent(_ListenSocket, OnAccept);
+            var connect_event = new ConnectEvent(ep, OnConnect);
+            if (connect_event == null) { return false; }
+
+            return connect_event.RegisterConnect();
+        }
+
+        public void Accept()
+        {
+            var accept_event = new AcceptEvent(_ListenSocket, OnConnect);
             var pending = _ListenSocket.AcceptAsync(accept_event);
             if (pending == false)
             {
@@ -108,10 +110,15 @@ namespace NetworkCore
         }
 
         #region Socket Event Manage
-        private long _CurrentSocketEventID = 0;
-        public long GenSocketEventID()
+        private long _CurrentConnectionID = 0;
+        public long PickConnectionID()
         {
-            return Interlocked.Increment(ref _CurrentSocketEventID);
+            return Interlocked.Increment(ref _CurrentConnectionID);
+        }
+
+        public long GetCurrentConnectionID()
+        {
+            return Interlocked.Read(ref _CurrentConnectionID);
         }
 
         private object _ConnectionLock = new object();

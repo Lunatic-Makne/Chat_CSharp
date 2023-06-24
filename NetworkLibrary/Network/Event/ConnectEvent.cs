@@ -10,31 +10,29 @@ namespace NetworkCore.Event
 {
     public class ConnectEvent : SocketAsyncEventArgs
     {
-        private Action<Socket?> _OnSuccess;
-        public ConnectEvent(IPEndPoint end_point, Action<Socket?> success_action)
+        private Action<Socket?> _OnConnected;
+        public ConnectEvent(IPEndPoint end_point, Action<Socket?> onConnected)
         {
-            _OnSuccess = success_action;
-
             var socket = new Socket(end_point.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 
             base.Completed += OnConnected;
             base.RemoteEndPoint = end_point;
             base.UserToken = socket;
-
-            RegisterConnect();
-            
+            this._OnConnected = onConnected;
         }
 
-        void RegisterConnect()
+        public bool RegisterConnect()
         {
             var socket = base.UserToken as Socket;
-            if (socket == null) { return; }
+            if (socket == null) { return false; }
 
             var pending = socket.ConnectAsync(this);
             if (pending == false)
             {
                 OnConnected(null, this);
             }
+
+            return true;
         }
 
         void OnConnected(object? sender, SocketAsyncEventArgs e) 
@@ -48,7 +46,7 @@ namespace NetworkCore.Event
                 return;
             }
 
-            _OnSuccess.Invoke(connect_event.UserToken as Socket);
+            _OnConnected.Invoke(UserToken as Socket);
         }
     }
 }

@@ -10,44 +10,30 @@ namespace DummyClient
     {
         public override void OnConnected(EndPoint ep)
         {
-            
+            Console.WriteLine($"Connect to [{ep}]");
+
+            SendTemp("Hi!");
         }
 
         public override void OnDisconnected(EndPoint ep)
         {
-            throw new NotImplementedException();
+            Console.WriteLine($"Disconnected. Addr[{ep}]");
         }
 
         public override void OnRecv(ArraySegment<byte> buffer)
         {
-            throw new NotImplementedException();
+            var recv_message = Encoding.UTF8.GetString(buffer);
+            Console.WriteLine($"[S2C] : {recv_message}");
         }
 
         public override void OnSend(int byte_transferred)
         {
-            throw new NotImplementedException();
+            Console.WriteLine($"Transferred : [{byte_transferred}]");
         }
     }
 
     internal class DummyClient_Program
     {
-        public static void SocketConnected(Socket? socket) 
-        {
-            if (socket == null) { return; }
-
-            Console.WriteLine($"Connect to [{socket.RemoteEndPoint}]");
-
-            byte[] send_buff = Encoding.UTF8.GetBytes("Hi!");
-            var send_bytes = socket.Send(send_buff);
-
-            byte[] recv_buff = new byte[8 * 1024];
-            var recv_bytes = socket.Receive(recv_buff);
-            var recv_message = Encoding.UTF8.GetString(recv_buff);
-            Console.WriteLine($"[S2C] : {recv_message}");
-
-            socket.Shutdown(SocketShutdown.Both);
-            socket.Close();
-        }
 
         static void Main(string[] args)
         {
@@ -56,6 +42,8 @@ namespace DummyClient
                 Console.WriteLine("[DummyClient] Load Config failed.");
                 return;
             }
+
+            NetworkManager.Inst.ConnectionFactory = () => { return new ClientConnection(); };
 
             // DNS
             var host = Dns.GetHostEntry(Dns.GetHostName());
@@ -67,8 +55,15 @@ namespace DummyClient
             {
                 try
                 {
-                    NetworkManager.Inst.Connect(ep, () => { return new ClientConnection(); }, SocketConnected);
+                    NetworkManager.Inst.Connect(ep);
                     Thread.Sleep(500);
+
+                    var conn_id = NetworkManager.Inst.GetCurrentConnectionID();
+                    var conn = NetworkManager.Inst.GetTCPConnection(conn_id);
+                    if (conn != null)
+                    {
+                        conn.CloseConnection();
+                    }
                 }
                 catch (Exception ex)
                 {

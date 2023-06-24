@@ -12,13 +12,15 @@ namespace ChatServer
                 Console.WriteLine("[Chat Server] Load Config Failed.");
             }
 
-            var listen_result = NetworkManager.Inst.Listen(() => { return new UserConnection(); }, Config.Inst.Info.network.listen_port, Config.Inst.Info.network.listen_backlog);
+            NetworkManager.Inst.ConnectionFactory = () => { return new UserConnection(); };
+
+            var listen_result = NetworkManager.Inst.Listen(Config.Inst.Info.network.listen_port, Config.Inst.Info.network.listen_backlog);
             if (listen_result == false)
             {
                 Console.WriteLine("[NetworkManager] Listen Failed.");
             }
 
-            NetworkManager.Inst.Run();
+            NetworkManager.Inst.Accept();
 
             while (true)
             {
