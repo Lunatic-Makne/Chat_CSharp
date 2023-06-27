@@ -20,6 +20,8 @@ namespace NetworkCore
         private List<ArraySegment<byte>> _SendPendingList = new List<ArraySegment<byte>>();
         private object _SendLock = new object();
 
+        private static readonly int MAX_BUFFER_SIZE = sizeof(char) * 8 * 1024;
+        private RecvBuffer _RecvBuffer = new RecvBuffer(MAX_BUFFER_SIZE);
         private ReceiveEvent _ReceiveEvent;
 
         public TCPConnection()
@@ -41,6 +43,10 @@ namespace NetworkCore
         private void RegisterRecv()
         {
             if (_ConnSocket == null) { return; }
+
+            _RecvBuffer.Clear();
+            var segment = _RecvBuffer.WriteSegment;
+            _ReceiveEvent.SetBuffer(segment.Array, segment.Offset, segment.Count);
 
             var pending = _ConnSocket.ReceiveAsync(_ReceiveEvent);
             if (pending == false)
@@ -64,12 +70,31 @@ namespace NetworkCore
                 {
                     if (receive_event.BytesTransferred > 0 && receive_event.SocketError == SocketError.Success)
                     {
-                        if (receive_event.Buffer != null)
+                        try
                         {
-                            OnRecv(new ArraySegment<byte>(receive_event.Buffer, receive_event.Offset, receive_event.BytesTransferred));
-                        }
+                            // Move WritePos First
+                            if (_RecvBuffer.OnRecv(receive_event.BytesTransferred) == false)
+                            {
+                                break;
+                            }
 
-                        RegisterRecv();
+                            var process_length = OnRecv(_RecvBuffer.ReadSegment);
+                            if (process_length < 0 || process_length > _RecvBuffer.DataSize)
+                            {
+                                break;
+                            }
+
+                            if (_RecvBuffer.OnRead(process_length) == false)
+                            {
+                                break;
+                            }
+
+                            RegisterRecv();
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"[TCPConnection] ProcessReceive failed. exception : \n{ex}");
+                        }
 
                         return;
                     }
@@ -79,10 +104,12 @@ namespace NetworkCore
             CloseConnection();
         }
 
-        public abstract void OnRecv(ArraySegment<byte> buffer);
+        #region Connection Event Callback
+        public abstract int OnRecv(ArraySegment<byte> buffer);
         public abstract void OnSend(int byte_transferred);
         public abstract void OnConnected(EndPoint ep);
         public abstract void OnDisconnected(EndPoint ep);
+        #endregion // Connection Event Callback
 
         public void CloseConnection()
         {

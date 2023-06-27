@@ -12,11 +12,13 @@ namespace ChatServer.Connection
 {
     public class UserConnection : TCPConnection
     {
-        public override void OnRecv(ArraySegment<byte> buffer)
+        public override int OnRecv(ArraySegment<byte> buffer)
         {
             // [TODO] Temp
             var message = Encoding.UTF8.GetString(buffer);
             Console.WriteLine($"[C2S] {message}");
+
+            return buffer.Count;
         }
 
         public override void OnSend(int byte_transferred)

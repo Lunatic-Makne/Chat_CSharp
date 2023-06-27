@@ -19,6 +19,7 @@ namespace NetworkCore
         [AllowNull]
         private Socket _ListenSocket;
 
+        [AllowNull]
         Func<TCPConnection> _ConnectionFactory;
         public Func<TCPConnection> ConnectionFactory { get { return _ConnectionFactory; } set { _ConnectionFactory = value; } }
 

@@ -20,10 +20,12 @@ namespace DummyClient
             Console.WriteLine($"Disconnected. Addr[{ep}]");
         }
 
-        public override void OnRecv(ArraySegment<byte> buffer)
+        public override int OnRecv(ArraySegment<byte> buffer)
         {
             var recv_message = Encoding.UTF8.GetString(buffer);
             Console.WriteLine($"[S2C] : {recv_message}");
+
+            return buffer.Count;
         }
 
         public override void OnSend(int byte_transferred)
