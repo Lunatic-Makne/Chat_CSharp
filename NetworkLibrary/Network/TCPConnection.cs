@@ -16,7 +16,7 @@ namespace NetworkCore
         private int _Disconnected = 0;
 
         private SendEvent _SendEvent;
-        private Queue<byte[]> _SendQueue = new Queue<byte[]>();
+        private Queue<ArraySegment<byte>> _SendQueue = new Queue<ArraySegment<byte>>();
         private List<ArraySegment<byte>> _SendPendingList = new List<ArraySegment<byte>>();
         private object _SendLock = new object();
 
@@ -135,10 +135,17 @@ namespace NetworkCore
         public void SendTemp(string message)
         {
             var buffer = Encoding.UTF8.GetBytes(message);
-            Send(buffer);
+            var segment = SendBufferHelper.Open(buffer.Length);
+            if (segment != null && segment.HasValue && segment.Value.Array != null)
+            {
+                Array.Copy(buffer, 0, segment.Value.Array, segment.Value.Offset, buffer.Length);
+                SendBufferHelper.Close(buffer.Length);
+
+                Send(segment.Value);
+            }
         }
 
-        public void Send(byte[] send_buffer)
+        public void Send(ArraySegment<byte> send_buffer)
         {
             lock(_SendLock)
             {
@@ -155,7 +162,7 @@ namespace NetworkCore
             while (_SendQueue.Count > 0)
             {
                 var buffer = _SendQueue.Dequeue();
-                _SendPendingList.Add(new ArraySegment<byte>(buffer, 0, buffer.Length));
+                _SendPendingList.Add(buffer);
             }
 
             _SendEvent.BufferList = _SendPendingList;
