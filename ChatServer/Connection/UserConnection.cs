@@ -10,15 +10,17 @@ using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace ChatServer.Connection
 {
-    public class UserConnection : TCPConnection
+    public class UserConnection : PacketHandleConnection
     {
-        public override int OnRecv(ArraySegment<byte> buffer)
+        public override void OnReceivePacket(ArraySegment<byte> buffer)
         {
-            // [TODO] Temp
-            var message = Encoding.UTF8.GetString(buffer);
-            Console.WriteLine($"[C2S] {message}");
+            if (buffer.Array != null)
+            {
+                var size = BitConverter.ToInt16(buffer.Array, buffer.Offset);
+                var id = BitConverter.ToInt64(buffer.Array, buffer.Offset + sizeof(short));
 
-            return buffer.Count;
+                Console.WriteLine($"[C2S] Packet size: {size}, Id: {id}");
+            }
         }
 
         public override void OnSend(int byte_transferred)
@@ -30,7 +32,11 @@ namespace ChatServer.Connection
         {
             Console.WriteLine($"Connected. Addr[{RemoteAddr}]");
 
-            SendTemp("Welcome!");
+            var packet = new Protocol.IPacket();
+            packet.Size = sizeof(short);
+            packet.Id = Protocol.PacketId._WELCOME_;
+            packet.Size += sizeof(Protocol.PacketId);
+            SendPacket(packet);
         }
 
         public override void OnDisconnected(EndPoint ep)

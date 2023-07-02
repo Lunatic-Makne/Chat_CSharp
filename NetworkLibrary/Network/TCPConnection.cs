@@ -203,5 +203,50 @@ namespace NetworkCore
 
             CloseConnection();
         }
+
+        public void SendPacket(Protocol.IPacket packet)
+        {
+            var openSegment = SendBufferHelper.Open(packet.Size);
+            if (openSegment.HasValue && openSegment.Value.Array != null)
+            {
+                var buffer = BitConverter.GetBytes(packet.Size);
+                var buffer2 = BitConverter.GetBytes((long)packet.Id);
+                Array.Copy(buffer, 0, openSegment.Value.Array, openSegment.Value.Offset, buffer.Length);
+                Array.Copy(buffer2, 0, openSegment.Value.Array, openSegment.Value.Offset + buffer.Length, buffer2.Length);
+                var send_buffer = SendBufferHelper.Close(buffer.Length + buffer2.Length);
+                if (send_buffer.HasValue)
+                {
+                    Send(send_buffer.Value);
+                }
+            }
+        }
+    }
+
+    public abstract class PacketHandleConnection : TCPConnection
+    {
+        public static readonly int HEADER_SIZE = 2 + 8; // size + id
+
+        public sealed override int OnRecv(ArraySegment<byte> buffer)
+        {
+            int process_len = 0;
+
+            while (true)
+            {
+                if (buffer.Array == null) { break; }
+                if (buffer.Count < HEADER_SIZE) { break; }
+
+                var packet_size = BitConverter.ToInt16(buffer.Array, buffer.Offset);
+                if (buffer.Count < packet_size) { break; }
+
+                OnReceivePacket(new ArraySegment<byte>(buffer.Array, buffer.Offset, packet_size));
+
+                process_len += packet_size;
+                buffer = new ArraySegment<byte>(buffer.Array, buffer.Offset + packet_size, buffer.Count - packet_size);
+            }
+
+            return process_len;
+        }
+
+        public abstract void OnReceivePacket(ArraySegment<byte> buffer);
     }
 }

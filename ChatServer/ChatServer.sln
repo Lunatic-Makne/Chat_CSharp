@@ -9,7 +9,7 @@ Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Protocol", "..\Protocol\Pro
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DummyClient", "..\DummyClient\DummyClient.csproj", "{D6532C12-A8F0-44D0-B81D-D8165ABB2729}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NetworkCore", "..\NetworkLibrary\NetworkCore.csproj", "{DA6FFACB-5A6E-4D50-B041-FA1A876F00C2}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NetworkCore", "..\NetworkLibrary\NetworkCore.csproj", "{DA6FFACB-5A6E-4D50-B041-FA1A876F00C2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -38,5 +38,6 @@ Global
 	EndGlobalSection
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		..\Protocol\Protocol.projitems*{ca871817-eb10-4939-8ae3-bca67bb117d1}*SharedItemsImports = 13
+		..\Protocol\Protocol.projitems*{da6ffacb-5a6e-4d50-b041-fa1a876f00c2}*SharedItemsImports = 5
 	EndGlobalSection
 EndGlobal

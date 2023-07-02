@@ -4,14 +4,19 @@ using System.Text;
 
 namespace Protocol
 {
-    public interface IPacket
+    public enum PacketId : long
     {
-        public long Size { get; set; } = 0;
-        public long Id { get; private set; } = 0;
+        _Unknown_ = 0,
+        _HI_,
+        _WELCOME_,
+        _MAX_
+    };
 
-        public IPacket(long id)
-        {
-            Id = id;
-        }
+    public class IPacket
+    {
+        public short Size = 0;
+        public PacketId Id = PacketId._Unknown_;
     }
+
+
 }

@@ -6,13 +6,18 @@ using System.Text;
 
 namespace DummyClient
 {
-    class ClientConnection : TCPConnection
+    class ClientConnection : PacketHandleConnection
     {
         public override void OnConnected(EndPoint ep)
         {
             Console.WriteLine($"Connect to [{ep}]");
 
-            SendTemp("Hi!");
+            var packet = new Protocol.IPacket();
+            packet.Size = sizeof(short); // size
+            packet.Id = Protocol.PacketId._HI_;
+            packet.Size += sizeof(long); // id
+
+            SendPacket(packet);
         }
 
         public override void OnDisconnected(EndPoint ep)
@@ -20,12 +25,15 @@ namespace DummyClient
             Console.WriteLine($"Disconnected. Addr[{ep}]");
         }
 
-        public override int OnRecv(ArraySegment<byte> buffer)
+        public override void OnReceivePacket(ArraySegment<byte> buffer)
         {
-            var recv_message = Encoding.UTF8.GetString(buffer);
-            Console.WriteLine($"[S2C] : {recv_message}");
+            if (buffer.Array != null)
+            {
+                var size = BitConverter.ToInt16(buffer.Array, buffer.Offset);
+                var id = BitConverter.ToInt64(buffer.Array, buffer.Offset + sizeof(short));
 
-            return buffer.Count;
+                Console.WriteLine($"[S2C] Packet size: {size}, Id: {id}");
+            }
         }
 
         public override void OnSend(int byte_transferred)
