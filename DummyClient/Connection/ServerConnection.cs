@@ -1,31 +1,36 @@
 ﻿using NetworkCore;
-using Protocol;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Text;
+using System.Threading.Tasks;
+using System.Net.Sockets;
+using Protocol;
 
-namespace ChatServer.Connection
+namespace DummyClient.Connection
 {
-    public class PacketHandler
+    class PacketHandler
     {
         public static bool Dispatch(ArraySegment<byte> buffer)
         {
-            if (buffer.Array == null) {  return false; }
-                        
+            if (buffer.Array == null) { return false; }
+
             int offset = 0;
             var size = BitConverter.ToInt16(buffer.Array, buffer.Offset + offset);
             offset += sizeof(short);
             var id = BitConverter.ToInt64(buffer.Array, buffer.Offset + offset);
             offset += sizeof(long);
 
-            if (offset + size > buffer.Array.Length) {  return false; }
+            if (size > buffer.Array.Length) { return false; }
 
             switch ((PacketId)id)
             {
-                case PacketId._HI_:
-                    var packet = new Hi();
+                case PacketId._WELCOME_:
+                    var packet = new Welcome();
                     packet.Read(new ArraySegment<byte>(buffer.Array, buffer.Offset + offset, buffer.Count - offset));
 
-                    Console.WriteLine($"[C2S][HI] name: [{packet.Name}]");
+                    Console.WriteLine($"[S2C][WELCOME] UserId: [{packet.UserId}]");
                     break;
                 default:
                     Console.WriteLine($"[PacketHandler] Unregistered PacketId[{id}].");
@@ -35,9 +40,25 @@ namespace ChatServer.Connection
             return true;
         }
     }
-
-    public class UserConnection : PacketHandleConnection
+    class ServerConnection : PacketHandleConnection
     {
+
+        public override void OnConnected(EndPoint ep)
+        {
+            Console.WriteLine($"Connect to [{ep}]");
+
+            SendHi();
+
+            Thread.Sleep(1000);
+
+            CloseConnection();
+        }
+
+        public override void OnDisconnected(EndPoint ep)
+        {
+            Console.WriteLine($"Disconnected. Addr[{ep}]");
+        }
+
         public override void OnReceivePacket(ArraySegment<byte> buffer)
         {
             if (PacketHandler.Dispatch(buffer) ==false)
@@ -51,18 +72,10 @@ namespace ChatServer.Connection
             Console.WriteLine($"Transferred : [{byte_transferred}]");
         }
 
-        public override void OnConnected(EndPoint ep)
+        public void SendHi()
         {
-            Console.WriteLine($"Connected. Addr[{RemoteAddr}]");
-
-            var packet = new Protocol.Welcome { UserId = Random.Shared.Next() };
+            var packet = new Protocol.Hi { Name = UserInfo.Inst.Name };
             SendPacket(packet);
-        }
-
-        public override void OnDisconnected(EndPoint ep)
-        {
-            Console.WriteLine($"Disconnected. Addr[{RemoteAddr}]");
-            NetworkManager.Inst.UnregisterTCPConnection(ConnectionID);
         }
     }
 }

@@ -1,45 +1,18 @@
 ﻿using ChatClient;
+using DummyClient.Connection;
 using NetworkCore;
 using System.Net;
-using System.Net.Sockets;
-using System.Text;
+
 
 namespace DummyClient
 {
-    class ClientConnection : PacketHandleConnection
+    public class UserInfo
     {
-        public override void OnConnected(EndPoint ep)
-        {
-            Console.WriteLine($"Connect to [{ep}]");
+        private UserInfo() { }
+        private static readonly Lazy<UserInfo> _Inst = new Lazy<UserInfo>(() => new UserInfo());
+        public static UserInfo Inst { get { return _Inst.Value; } }
 
-            var packet = new Protocol.IPacket();
-            packet.Size = sizeof(short); // size
-            packet.Id = Protocol.PacketId._HI_;
-            packet.Size += sizeof(long); // id
-
-            SendPacket(packet);
-        }
-
-        public override void OnDisconnected(EndPoint ep)
-        {
-            Console.WriteLine($"Disconnected. Addr[{ep}]");
-        }
-
-        public override void OnReceivePacket(ArraySegment<byte> buffer)
-        {
-            if (buffer.Array != null)
-            {
-                var size = BitConverter.ToInt16(buffer.Array, buffer.Offset);
-                var id = BitConverter.ToInt64(buffer.Array, buffer.Offset + sizeof(short));
-
-                Console.WriteLine($"[S2C] Packet size: {size}, Id: {id}");
-            }
-        }
-
-        public override void OnSend(int byte_transferred)
-        {
-            Console.WriteLine($"Transferred : [{byte_transferred}]");
-        }
+        public string Name { get; set; } = new string("");
     }
 
     internal class DummyClient_Program
@@ -47,13 +20,16 @@ namespace DummyClient
 
         static void Main(string[] args)
         {
+            Console.Write("Write your name: ");
+            UserInfo.Inst.Name = Console.ReadLine();
+
             if (Config.Inst.Load() == false)
             {
                 Console.WriteLine("[DummyClient] Load Config failed.");
                 return;
             }
 
-            NetworkManager.Inst.ConnectionFactory = () => { return new ClientConnection(); };
+            NetworkManager.Inst.ConnectionFactory = () => { return new ServerConnection(); };
 
             // DNS
             var host = Dns.GetHostEntry(Dns.GetHostName());
@@ -65,14 +41,9 @@ namespace DummyClient
             {
                 try
                 {
-                    NetworkManager.Inst.Connect(ep);
-                    Thread.Sleep(500);
-
-                    var conn_id = NetworkManager.Inst.GetCurrentConnectionID();
-                    var conn = NetworkManager.Inst.GetTCPConnection(conn_id);
-                    if (conn != null)
+                    if (NetworkManager.Inst.Connect(ep) == false)
                     {
-                        conn.CloseConnection();
+                        return;
                     }
                 }
                 catch (Exception ex)
@@ -80,7 +51,7 @@ namespace DummyClient
                     Console.WriteLine(ex.ToString());
                 }
 
-                Thread.Sleep(200);
+                Thread.Sleep(5000);
             }
         }
     }

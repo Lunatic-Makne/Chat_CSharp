@@ -20,7 +20,7 @@ namespace NetworkCore
         private List<ArraySegment<byte>> _SendPendingList = new List<ArraySegment<byte>>();
         private object _SendLock = new object();
 
-        private static readonly int MAX_BUFFER_SIZE = sizeof(char) * 8 * 1024;
+        protected static readonly int MAX_BUFFER_SIZE = 8 * 1024;
         private RecvBuffer _RecvBuffer = new RecvBuffer(MAX_BUFFER_SIZE);
         private ReceiveEvent _ReceiveEvent;
 
@@ -203,23 +203,6 @@ namespace NetworkCore
 
             CloseConnection();
         }
-
-        public void SendPacket(Protocol.IPacket packet)
-        {
-            var openSegment = SendBufferHelper.Open(packet.Size);
-            if (openSegment.HasValue && openSegment.Value.Array != null)
-            {
-                var buffer = BitConverter.GetBytes(packet.Size);
-                var buffer2 = BitConverter.GetBytes((long)packet.Id);
-                Array.Copy(buffer, 0, openSegment.Value.Array, openSegment.Value.Offset, buffer.Length);
-                Array.Copy(buffer2, 0, openSegment.Value.Array, openSegment.Value.Offset + buffer.Length, buffer2.Length);
-                var send_buffer = SendBufferHelper.Close(buffer.Length + buffer2.Length);
-                if (send_buffer.HasValue)
-                {
-                    Send(send_buffer.Value);
-                }
-            }
-        }
     }
 
     public abstract class PacketHandleConnection : TCPConnection
@@ -236,6 +219,7 @@ namespace NetworkCore
                 if (buffer.Count < HEADER_SIZE) { break; }
 
                 var packet_size = BitConverter.ToInt16(buffer.Array, buffer.Offset);
+                if (packet_size == 0) {  break; }
                 if (buffer.Count < packet_size) { break; }
 
                 OnReceivePacket(new ArraySegment<byte>(buffer.Array, buffer.Offset, packet_size));
@@ -248,5 +232,14 @@ namespace NetworkCore
         }
 
         public abstract void OnReceivePacket(ArraySegment<byte> buffer);
+
+        public void SendPacket(Protocol.IPacket packet)
+        {
+            var openSegment = packet.Write(MAX_BUFFER_SIZE);
+            if (openSegment.HasValue && openSegment.Value.Array != null)
+            {
+                Send(openSegment.Value);
+            }
+        }
     }
 }
