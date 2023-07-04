@@ -43,7 +43,7 @@ namespace DummyClient
                 {
                     if (NetworkManager.Inst.Connect(ep) == false)
                     {
-                        return;
+                        break;
                     }
                 }
                 catch (Exception ex)

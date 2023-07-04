@@ -36,6 +36,8 @@ namespace Protocol
 
             var buffer = openSegment.Value;
             Size = (short)WriteImpl(buffer);
+            if (Size <= 0) { return null; }
+
             var size = BitConverter.GetBytes(Size);
             Array.Copy(size, 0, buffer.Array, buffer.Offset, sizeof(short));
 
@@ -50,9 +52,12 @@ namespace Protocol
             // reserve byte for packet size
             offset += sizeof(short);
 
-            var id = BitConverter.GetBytes((long)Id);
-            Array.Copy(id, 0, buffer.Array, buffer.Offset + offset, sizeof(long));
+            var span = new Span<byte>(buffer.Array, buffer.Offset, buffer.Count);
+
+            bool result = BitConverter.TryWriteBytes(span.Slice(offset, span.Length - offset), (long) Id);
             offset += sizeof(long);
+
+            if (result == false) { return 0; }
 
             return offset;
         }
@@ -76,13 +81,15 @@ namespace Protocol
             var offset = base.WriteImpl(buffer);
             if (offset == 0) { return 0; }
 
-            var name = Encoding.UTF8.GetBytes(Name);
             bool result = true;
-            result &= BitConverter.TryWriteBytes(new Span<byte>(buffer.Array, buffer.Offset + offset, buffer.Count - offset), name.Length);
-            offset += sizeof(int);
+            var span = new Span<byte>(buffer.Array, buffer.Offset, buffer.Count);
 
-            Array.Copy(name, 0, buffer.Array, buffer.Offset + offset, name.Length);
-            offset += name.Length;
+            var name_length = Encoding.Unicode.GetBytes(Name, 0, Name.Length, buffer.Array, buffer.Offset + offset + sizeof(int));
+            result &= BitConverter.TryWriteBytes(span.Slice(offset, span.Length - offset), name_length);
+            offset += sizeof(int);
+            offset += name_length;
+
+            if (result == false) { return 0; }
 
             return offset;
         }
@@ -91,13 +98,14 @@ namespace Protocol
         {
             if (buffer.Array == null) { return false; }
 
+            var readonly_span = new ReadOnlySpan<byte>(buffer.Array, buffer.Offset, buffer.Count);
+
             int offset = 0;
-            var length = BitConverter.ToInt32(new ReadOnlySpan<byte>(buffer.Array, buffer.Offset + offset, buffer.Count - offset));
+            var length = BitConverter.ToInt32(readonly_span.Slice(offset, readonly_span.Length - offset));
             offset += sizeof(int);
 
-            var byte_buffer = new byte[length];
-            Array.Copy(buffer.Array, buffer.Offset + offset, byte_buffer, 0, length);
-            Name = Encoding.UTF8.GetString(byte_buffer);
+            Name = Encoding.Unicode.GetString(readonly_span.Slice(offset, readonly_span.Length - offset));
+            offset += length;
 
             return true;
         }
@@ -117,9 +125,15 @@ namespace Protocol
             if (buffer.Array == null) { return 0; }
 
             var offset = base.WriteImpl(buffer);
-            var user_id = BitConverter.GetBytes(UserId);
-            Array.Copy(user_id, 0, buffer.Array, buffer.Offset + offset, user_id.Length);
+            if (offset == 0) { return 0; }
+
+            bool result = true;
+            var span = new Span<byte>(buffer.Array, buffer.Offset, buffer.Count);
+
+            result &= BitConverter.TryWriteBytes(span.Slice(offset, span.Length - offset), UserId);
             offset += sizeof(long);
+
+            if (result == false) { return 0; }
 
             return offset;
         }
