@@ -11,6 +11,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DummyClient", "..\DummyClie
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NetworkCore", "..\NetworkLibrary\NetworkCore.csproj", "{DA6FFACB-5A6E-4D50-B041-FA1A876F00C2}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PacketGenerator", "..\PacketGenerator\PacketGenerator.csproj", "{092DD0D4-246F-46B2-91D8-5AD3A25A0B03}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tool", "Tool", "{78564C7A-5E05-49FC-9341-93120739930E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -29,9 +33,16 @@ Global
 		{DA6FFACB-5A6E-4D50-B041-FA1A876F00C2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DA6FFACB-5A6E-4D50-B041-FA1A876F00C2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DA6FFACB-5A6E-4D50-B041-FA1A876F00C2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{092DD0D4-246F-46B2-91D8-5AD3A25A0B03}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{092DD0D4-246F-46B2-91D8-5AD3A25A0B03}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{092DD0D4-246F-46B2-91D8-5AD3A25A0B03}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{092DD0D4-246F-46B2-91D8-5AD3A25A0B03}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{092DD0D4-246F-46B2-91D8-5AD3A25A0B03} = {78564C7A-5E05-49FC-9341-93120739930E}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {3E2B802A-252F-4A25-ABC8-FC92C3F890C4}

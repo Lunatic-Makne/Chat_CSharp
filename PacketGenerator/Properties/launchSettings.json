@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "PacketGenerator": {
+      "commandName": "Project",
+      "workingDirectory": "D:\\Dev\\Chat_CSharp\\PacketGenerator"
+    }
+  }
+}

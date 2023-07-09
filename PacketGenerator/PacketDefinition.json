@@ -1,0 +1,43 @@
+{
+  "SharedStruct": [
+    {
+      "definition_type": "struct",
+      "name": "UserInfo",
+      "properties": [
+        {
+          "type": "long",
+          "name": "UserId"
+        }
+      ]
+    }
+  ],
+  "ClientToServer": [
+    {
+      "definition_type": "packet",
+      "name": "Hi",
+      "properties": [
+        {
+          "type": "string",
+          "name": "Name"
+        }
+      ]
+    }
+  ],
+  "ServerToClient": [
+    {
+      "definition_type": "packet",
+      "name": "Welcome",
+      "properties": [
+        {
+          "type": "long",
+          "name": "UserId"
+        },
+        {
+          "type": "list",
+          "inner_type": "UserInfo",
+          "name": "UserList"
+        }
+      ]
+    }
+  ]
+}

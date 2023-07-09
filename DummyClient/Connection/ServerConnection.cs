@@ -7,6 +7,9 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Net.Sockets;
 using Protocol;
+using Protocol.ClientToServer;
+using Protocol.ServerToClient;
+using Protocol.SharedStruct;
 
 namespace DummyClient.Connection
 {
@@ -31,6 +34,10 @@ namespace DummyClient.Connection
                     packet.Read(new ArraySegment<byte>(buffer.Array, buffer.Offset + offset, buffer.Count - offset));
 
                     Console.WriteLine($"[S2C][WELCOME] UserId: [{packet.UserId}]");
+                    foreach(var info in packet.UserList)
+                    {
+                        Console.WriteLine($"[UserList] UserId: [{info.UserId}]");
+                    }
                     break;
                 default:
                     Console.WriteLine($"[PacketHandler] Unregistered PacketId[{id}].");
@@ -74,7 +81,7 @@ namespace DummyClient.Connection
 
         public void SendHi()
         {
-            var packet = new Protocol.Hi { Name = UserInfo.Inst.Name };
+            var packet = new Hi { Name = UserInfo.Inst.Name };
             SendPacket(packet);
         }
     }

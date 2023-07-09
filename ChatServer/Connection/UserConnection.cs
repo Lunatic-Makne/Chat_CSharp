@@ -1,5 +1,8 @@
 ﻿using NetworkCore;
 using Protocol;
+using Protocol.ClientToServer;
+using Protocol.ServerToClient;
+using Protocol.SharedStruct;
 using System.Net;
 using System.Text;
 
@@ -55,8 +58,16 @@ namespace ChatServer.Connection
         {
             Console.WriteLine($"Connected. Addr[{RemoteAddr}]");
 
-            var packet = new Protocol.Welcome { UserId = Random.Shared.Next() };
+            var packet = new Welcome { UserId = Random.Shared.Next() };
+            packet.UserList.Add(new UserInfo { UserId = Random.Shared.Next() });
+            packet.UserList.Add(new UserInfo { UserId = Random.Shared.Next() });
+            packet.UserList.Add(new UserInfo { UserId = Random.Shared.Next() });
             SendPacket(packet);
+
+            foreach(var item in packet.UserList)
+            {
+                Console.WriteLine($"TEST: {item.UserId}");
+            }
         }
 
         public override void OnDisconnected(EndPoint ep)
