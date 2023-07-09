@@ -24,8 +24,8 @@ namespace ChatServer.Connection
 
             switch ((PacketId)id)
             {
-                case PacketId._HI_:
-                    var packet = new Hi();
+                case PacketId._LOGIN_:
+                    var packet = new Login();
                     packet.Read(new ArraySegment<byte>(buffer.Array, buffer.Offset + offset, buffer.Count - offset));
 
                     Console.WriteLine($"[C2S][HI] name: [{packet.Name}]");
@@ -58,7 +58,7 @@ namespace ChatServer.Connection
         {
             Console.WriteLine($"Connected. Addr[{RemoteAddr}]");
 
-            var packet = new Welcome { UserId = Random.Shared.Next() };
+            var packet = new LoginReply { UserId = Random.Shared.Next() };
             packet.UserList.Add(new UserInfo { UserId = Random.Shared.Next() });
             packet.UserList.Add(new UserInfo { UserId = Random.Shared.Next() });
             packet.UserList.Add(new UserInfo { UserId = Random.Shared.Next() });

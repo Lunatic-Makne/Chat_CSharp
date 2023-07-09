@@ -6,8 +6,8 @@ namespace Protocol
 	public enum PacketId : long
 	{
 		_Unknown_ = 0
-		, _HI_
-		, _WELCOME_
+		, _LOGIN_
+		, _LOGINREPLY_
 		, _MAX_
 	}
 	
@@ -82,11 +82,11 @@ namespace Protocol
 	}
 	namespace ClientToServer
 	{
-		public class Hi : IPacket
+		public class Login : IPacket
 		{
 			public string Name;
 			
-			public Hi() : base(PacketId._HI_)
+			public Login() : base(PacketId._LOGIN_)
 			{
 			}
 			protected override int WriteImpl(ArraySegment<byte> buffer)
@@ -122,12 +122,12 @@ namespace Protocol
 	}
 	namespace ServerToClient
 	{
-		public class Welcome : IPacket
+		public class LoginReply : IPacket
 		{
 			public long UserId;
 			public List<SharedStruct.UserInfo> UserList = new List<SharedStruct.UserInfo>();
 			
-			public Welcome() : base(PacketId._WELCOME_)
+			public LoginReply() : base(PacketId._LOGINREPLY_)
 			{
 			}
 			protected override int WriteImpl(ArraySegment<byte> buffer)

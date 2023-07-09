@@ -14,7 +14,7 @@
   "ClientToServer": [
     {
       "definition_type": "packet",
-      "name": "Hi",
+      "name": "Login",
       "properties": [
         {
           "type": "string",
@@ -26,7 +26,7 @@
   "ServerToClient": [
     {
       "definition_type": "packet",
-      "name": "Welcome",
+      "name": "LoginReply",
       "properties": [
         {
           "type": "long",

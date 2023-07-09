@@ -29,8 +29,8 @@ namespace DummyClient.Connection
 
             switch ((PacketId)id)
             {
-                case PacketId._WELCOME_:
-                    var packet = new Welcome();
+                case PacketId._LOGINREPLY_:
+                    var packet = new LoginReply();
                     packet.Read(new ArraySegment<byte>(buffer.Array, buffer.Offset + offset, buffer.Count - offset));
 
                     Console.WriteLine($"[S2C][WELCOME] UserId: [{packet.UserId}]");
@@ -54,7 +54,7 @@ namespace DummyClient.Connection
         {
             Console.WriteLine($"Connect to [{ep}]");
 
-            SendHi();
+            SendLogin();
 
             Thread.Sleep(1000);
 
@@ -79,9 +79,9 @@ namespace DummyClient.Connection
             Console.WriteLine($"Transferred : [{byte_transferred}]");
         }
 
-        public void SendHi()
+        public void SendLogin()
         {
-            var packet = new Hi { Name = UserInfo.Inst.Name };
+            var packet = new Login { Name = UserInfo.Inst.Name };
             SendPacket(packet);
         }
     }
