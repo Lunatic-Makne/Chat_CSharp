@@ -27,9 +27,9 @@ namespace DummyClient.Connection
 
             if (size > buffer.Array.Length) { return false; }
 
-            switch ((PacketId)id)
+            switch ((Protocol.ServerToClient.PacketId)id)
             {
-                case PacketId._LOGINREPLY_:
+                case Protocol.ServerToClient.PacketId._LOGINREPLY_:
                     var packet = new LoginReply();
                     packet.Read(new ArraySegment<byte>(buffer.Array, buffer.Offset + offset, buffer.Count - offset));
 

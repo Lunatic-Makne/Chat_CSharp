@@ -22,9 +22,9 @@ namespace ChatServer.Connection
 
             if (offset + size > buffer.Array.Length) {  return false; }
 
-            switch ((PacketId)id)
+            switch ((Protocol.ClientToServer.PacketId)id)
             {
-                case PacketId._LOGIN_:
+                case Protocol.ClientToServer.PacketId._LOGIN_:
                     var packet = new Login();
                     packet.Read(new ArraySegment<byte>(buffer.Array, buffer.Offset + offset, buffer.Count - offset));
 

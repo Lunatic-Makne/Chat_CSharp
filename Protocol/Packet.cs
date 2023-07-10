@@ -3,25 +3,36 @@ using System.Text;
 
 namespace Protocol
 {
-	public enum PacketId : long
+	namespace ClientToServer
 	{
-		_Unknown_ = 0
-		, _LOGIN_
-		, _LOGINREPLY_
-		, _MAX_
+		public enum PacketId : long
+		{
+			_Unknown_ = 0
+			, _LOGIN_
+			, _MAX_
+		}
+	}
+	namespace ServerToClient
+	{
+		public enum PacketId : long
+		{
+			_Unknown_ = 0
+			, _LOGINREPLY_
+			, _MAX_
+		}
 	}
 	
 	public abstract class IPacket
 	{
 	    public short Size = 0;
-	    public PacketId Id = PacketId._Unknown_;
+	    public long Id = 0;
 	
-	    public IPacket(PacketId id)
+	    public IPacket(long id)
 	    {
 	        Id = id;
 	
-	        Size = sizeof(short);
-	        Size += sizeof(PacketId);
+	        Size += sizeof(short);
+	        Size += sizeof(long);
 	    }
 	
 	    public ArraySegment<byte>? Write(int send_buffer_size)
@@ -86,7 +97,7 @@ namespace Protocol
 		{
 			public string Name;
 			
-			public Login() : base(PacketId._LOGIN_)
+			public Login() : base((long)PacketId._LOGIN_)
 			{
 			}
 			protected override int WriteImpl(ArraySegment<byte> buffer)
@@ -127,7 +138,7 @@ namespace Protocol
 			public long UserId;
 			public List<SharedStruct.UserInfo> UserList = new List<SharedStruct.UserInfo>();
 			
-			public LoginReply() : base(PacketId._LOGINREPLY_)
+			public LoginReply() : base((long)PacketId._LOGINREPLY_)
 			{
 			}
 			protected override int WriteImpl(ArraySegment<byte> buffer)

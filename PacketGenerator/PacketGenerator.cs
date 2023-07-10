@@ -6,7 +6,7 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace PacketGenerator
 {
-    internal class Program
+    internal class PacketGenerator
     {
         private static readonly string _PDFileName = "PacketDefinition.json";
         public static string PDFilePath { get { return Directory.GetCurrentDirectory() + "\\" + _PDFileName; } }
@@ -32,6 +32,9 @@ namespace PacketGenerator
         private static readonly string IN_TYPE = "inner_type";
         private static readonly string PACKET = "packet";
         private static readonly string STRUCT = "struct";
+
+        private static List<string> C2SPacketNameList = new List<string>();
+        private static List<string> S2CPacketNameList = new List<string>();
 
         static void Main(string[] args)
         {
@@ -88,24 +91,30 @@ namespace PacketGenerator
             }
         }
 
-        private static List<string> _PacketNameList = new List<string>();
         private static readonly string PACKET_ID_ENUM_FORMAT = "_{0}_";
 
-        public static string MakeEnum()
+        public static string MakeEnum(string ns, List<string> packet_name_list)
         {
             var result = "";
-            result += "public enum PacketId : long" + NEWLINE;
+            result += $"namespace {ns}" + NEWLINE;
             result += START_SCOPE + NEWLINE;
 
-            result += TAP + "_Unknown_ = 0" + NEWLINE;
+            var inner = "";
+            inner += $"public enum PacketId : long" + NEWLINE;
+            inner += START_SCOPE + NEWLINE;
 
-            foreach (var packet in _PacketNameList )
+            inner += TAP + "_Unknown_ = 0" + NEWLINE;
+
+            foreach (var packet in packet_name_list)
             {
                 var enum_string = string.Format(PACKET_ID_ENUM_FORMAT, packet.ToUpper());
-                result += TAP + ", " + enum_string + NEWLINE;
+                inner += TAP + ", " + enum_string + NEWLINE;
             }
 
-            result += TAP + ", _MAX_" + NEWLINE;
+            inner += TAP + ", _MAX_" + NEWLINE;
+            inner += END_SCOPE + NEWLINE;
+
+            result += Indent(inner);
             result += END_SCOPE + NEWLINE;
 
             return Indent(result);
@@ -121,20 +130,21 @@ namespace PacketGenerator
             Header += NEWLINE;
             Header += START_SCOPE + NEWLINE;
 
-            Header += MakeEnum();
+            Header += MakeEnum(C2S, C2SPacketNameList);
+            Header += MakeEnum(S2C, S2CPacketNameList);
             Header += Indent(
 @"
 public abstract class IPacket
 {
     public short Size = 0;
-    public PacketId Id = PacketId._Unknown_;
+    public long Id = 0;
 
-    public IPacket(PacketId id)
+    public IPacket(long id)
     {
         Id = id;
 
-        Size = sizeof(short);
-        Size += sizeof(PacketId);
+        Size += sizeof(short);
+        Size += sizeof(long);
     }
 
     public ArraySegment<byte>? Write(int send_buffer_size)
@@ -194,7 +204,18 @@ public abstract class IPacket
                         var def_type = def_token.ToString();
                         if (def_type == PACKET)
                         {
-                            result += ParsePacket(jobject);
+                            if (ns == C2S)
+                            {
+                                result += ParsePacket(jobject, ref C2SPacketNameList);
+                            }
+                            else if (ns == S2C)
+                            {
+                                result += ParsePacket(jobject, ref S2CPacketNameList);
+                            }
+                            else
+                            {
+                                throw new InvalidDataException($"[{ns}] need PacketNameList.");
+                            }
                         }
                         else if (def_type == STRUCT)
                         {
@@ -581,7 +602,7 @@ int offset = 0;
         {
             var result = "";
 
-            result += $"public {packet_name}() : base(PacketId.{string.Format(PACKET_ID_ENUM_FORMAT, packet_name.ToUpper())})";
+            result += $"public {packet_name}() : base((long)PacketId.{string.Format(PACKET_ID_ENUM_FORMAT, packet_name.ToUpper())})";
             result += NEWLINE;
             result += START_SCOPE + NEWLINE;
             result += END_SCOPE + NEWLINE;
@@ -589,14 +610,14 @@ int offset = 0;
             return Indent(result);
         }
 
-        public static string ParsePacket(JObject jobject)
+        public static string ParsePacket(JObject jobject, ref List<string> packet_name_list)
         {
             var result = "";
             var name_token = jobject.GetValue(NAME);
             if (name_token != null)
             {
                 result += $"public class {name_token} : IPacket" + NEWLINE;
-                _PacketNameList.Add(name_token.ToString());
+                packet_name_list.Add(name_token.ToString());
             }
             else
             {
