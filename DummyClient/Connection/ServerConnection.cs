@@ -68,7 +68,7 @@ namespace DummyClient.Connection
 
         public override void OnReceivePacket(ArraySegment<byte> buffer)
         {
-            if (PacketHandler.Dispatch(buffer) ==false)
+            if (Protocol.ServerToClient.PacketHandler.Inst.Dispatch(this, buffer) == false)
             {
                 CloseConnection();
             }

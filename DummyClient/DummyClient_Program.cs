@@ -29,6 +29,8 @@ namespace DummyClient
                 return;
             }
 
+            Protocol.ServerToClient.PacketHandler.Inst.Register();
+
             NetworkManager.Inst.ConnectionFactory = () => { return new ServerConnection(); };
 
             // DNS

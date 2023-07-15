@@ -401,4 +401,5 @@ ChatServer/*.json
 ChatClient/*.json
 PacketGenerator/Packet.cs
 PacketGenerator/PacketGenerator.exe.lnk
-PacketGenerator/Generate.bat
+/PacketGenerator/ServerPacketHandler.cs
+/PacketGenerator/ClientPacketHandler.cs

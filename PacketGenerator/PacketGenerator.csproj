@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -8,7 +8,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="ClientPacketHandler.cs" />
     <Compile Remove="Packet.cs" />
+    <Compile Remove="ServerPacketHandler.cs" />
+    <Compile Remove="ServerRegister.cs" />
   </ItemGroup>
 
   <ItemGroup>

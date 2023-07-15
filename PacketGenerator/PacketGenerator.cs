@@ -6,15 +6,15 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace PacketGenerator
 {
-    internal class PacketGenerator
+    partial class PacketGenerator
     {
         private static readonly string _PDFileName = "PacketDefinition.json";
         public static string PDFilePath { get { return Directory.GetCurrentDirectory() + "\\" + _PDFileName; } }
         private static readonly string _PacketFileName = "Packet.cs";
         public static string PacketFilePath { get { return Directory.GetCurrentDirectory() + "\\" + _PacketFileName; } }
 
-        private static string Header;
-        private static string Body;
+        private static string Header = "";
+        private static string Body = "";
 
         private static readonly string SHARED_STRUCT = "SharedStruct";
         private static readonly string C2S = "ClientToServer";
@@ -38,8 +38,32 @@ namespace PacketGenerator
 
         static void Main(string[] args)
         {
+            if (args.Length < 1)
+                return;
+
+            var target = args[0];
+            switch (target)
+            {
+                case "Packet":
+                    GeneratePacket();
+                    break;
+                case "ServerHandler":
+                    GenServerPacketRegister();
+                    break;
+                case "ClientHandler":
+                    GenClientPacketRegister();
+                    break;
+                default:
+                    Console.WriteLine("Invalid Command.");
+                    return;
+            }
+        }
+
+        static void GeneratePacket()
+        {
             try
             {
+                Console.WriteLine($"Generate Packet Start.");
                 var json_string = File.ReadAllText(PDFilePath);
                 var root_object = JsonConvert.DeserializeObject<JObject>(json_string);
 
@@ -58,6 +82,7 @@ namespace PacketGenerator
                 var client_to_server = root_object.GetValue(C2S);
                 if (client_to_server != null)
                 {
+                    ParsePacketNameList(client_to_server, C2S, ref C2SPacketNameList);
                     ParseNamespace(client_to_server, C2S);
                 }
                 else
@@ -69,6 +94,7 @@ namespace PacketGenerator
                 var server_to_client = root_object.GetValue(S2C);
                 if (server_to_client != null)
                 {
+                    ParsePacketNameList(server_to_client, S2C, ref S2CPacketNameList);
                     ParseNamespace(server_to_client, S2C);
                 }
                 else
@@ -81,13 +107,57 @@ namespace PacketGenerator
                 MakeHeader();
 
                 var result = Header + Body;
-                Console.WriteLine($"[Result] :\n{result}");
-
                 File.WriteAllText(PacketFilePath, result);
+
+                Console.WriteLine("Generate Packet Complete.");
             }
             catch (Exception ex)
             {
                 Console.WriteLine(ex);
+            }
+        }
+
+
+        static void ParsePacketNameList(JToken token, string ns, ref List<string> packet_name_list)
+        {
+            var packet_list = token.ToArray();
+            if (packet_list == null) { throw new InvalidDataException("Parse server packet name list failed. ToArray failed."); }
+
+            foreach (var element in packet_list)
+            {
+                var packet = element.ToObject<JObject>();
+                if (packet != null)
+                {
+                    var def_token = packet.GetValue(DEFI_TYPE);
+                    if (def_token != null)
+                    {
+                        var def_type = def_token.ToString();
+                        if (def_type == PACKET)
+                        {
+                            var name_token = packet.GetValue(NAME);
+                            if (name_token != null && string.IsNullOrEmpty(name_token.ToString()) == false)
+                            {
+                                packet_name_list.Add(name_token.ToString());
+                            }
+                            else
+                            {
+                                throw new InvalidDataException($"[{ns}] Invalid name. target: \n{packet}");
+                            }
+                        }
+                        else
+                        {
+                            throw new InvalidDataException($"[{ns}] Allow Packet type only. target: \n{packet}");
+                        }
+                    }
+                    else
+                    {
+                        throw new InvalidDataException($"[{ns}] Parse element failed. target: \n{packet}");
+                    }
+                }
+                else
+                {
+                    throw new InvalidDataException($"[{ns}] Convert JObject failed. target: \n{element}");
+                }
             }
         }
 
@@ -193,6 +263,8 @@ public abstract class IPacket
             result += START_SCOPE + NEWLINE;
 
             var struct_list = token.ToArray();
+            if (struct_list == null) { throw new InvalidDataException("Parse namespace failed. token ToArray failed."); }
+
             foreach (var element in struct_list)
             {
                 var jobject = element.ToObject<JObject>();
@@ -204,18 +276,7 @@ public abstract class IPacket
                         var def_type = def_token.ToString();
                         if (def_type == PACKET)
                         {
-                            if (ns == C2S)
-                            {
-                                result += ParsePacket(jobject, ref C2SPacketNameList);
-                            }
-                            else if (ns == S2C)
-                            {
-                                result += ParsePacket(jobject, ref S2CPacketNameList);
-                            }
-                            else
-                            {
-                                throw new InvalidDataException($"[{ns}] need PacketNameList.");
-                            }
+                            result += ParsePacket(jobject);
                         }
                         else if (def_type == STRUCT)
                         {
@@ -223,7 +284,7 @@ public abstract class IPacket
                         }
                         else
                         {
-                            throw new InvalidDataException($"[{ns}] Invalid definition_type. value: {def_type}");
+                            throw new InvalidDataException($"[{ns}] Invalid definition_type. value: {def_type}, target: {jobject}");
                         }                        
                     }
                     else
@@ -610,14 +671,13 @@ int offset = 0;
             return Indent(result);
         }
 
-        public static string ParsePacket(JObject jobject, ref List<string> packet_name_list)
+        public static string ParsePacket(JObject jobject)
         {
             var result = "";
             var name_token = jobject.GetValue(NAME);
-            if (name_token != null)
+            if (name_token != null && string.IsNullOrEmpty(name_token.ToString()) == false)
             {
                 result += $"public class {name_token} : IPacket" + NEWLINE;
-                packet_name_list.Add(name_token.ToString());
             }
             else
             {

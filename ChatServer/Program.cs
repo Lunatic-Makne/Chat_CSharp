@@ -12,6 +12,8 @@ namespace ChatServer
                 Console.WriteLine("[Chat Server] Load Config Failed.");
             }
 
+            Protocol.ClientToServer.PacketHandler.Inst.Register();
+
             NetworkManager.Inst.ConnectionFactory = () => { return new UserConnection(); };
 
             var listen_result = NetworkManager.Inst.Listen(Config.Inst.Info.network.listen_port, Config.Inst.Info.network.listen_backlog);

@@ -8,42 +8,11 @@ using System.Text;
 
 namespace ChatServer.Connection
 {
-    public class PacketHandler
-    {
-        public static bool Dispatch(ArraySegment<byte> buffer)
-        {
-            if (buffer.Array == null) {  return false; }
-                        
-            int offset = 0;
-            var size = BitConverter.ToInt16(buffer.Array, buffer.Offset + offset);
-            offset += sizeof(short);
-            var id = BitConverter.ToInt64(buffer.Array, buffer.Offset + offset);
-            offset += sizeof(long);
-
-            if (offset + size > buffer.Array.Length) {  return false; }
-
-            switch ((Protocol.ClientToServer.PacketId)id)
-            {
-                case Protocol.ClientToServer.PacketId._LOGIN_:
-                    var packet = new Login();
-                    packet.Read(new ArraySegment<byte>(buffer.Array, buffer.Offset + offset, buffer.Count - offset));
-
-                    Console.WriteLine($"[C2S][HI] name: [{packet.Name}]");
-                    break;
-                default:
-                    Console.WriteLine($"[PacketHandler] Unregistered PacketId[{id}].");
-                    return false;
-            }
-
-            return true;
-        }
-    }
-
     public class UserConnection : PacketHandleConnection
     {
         public override void OnReceivePacket(ArraySegment<byte> buffer)
         {
-            if (PacketHandler.Dispatch(buffer) ==false)
+            if (Protocol.ClientToServer.PacketHandler.Inst.Dispatch(this, buffer) == false)
             {
                 CloseConnection();
             }
@@ -57,17 +26,6 @@ namespace ChatServer.Connection
         public override void OnConnected(EndPoint ep)
         {
             Console.WriteLine($"Connected. Addr[{RemoteAddr}]");
-
-            var packet = new LoginReply { UserId = Random.Shared.Next() };
-            packet.UserList.Add(new UserInfo { UserId = Random.Shared.Next() });
-            packet.UserList.Add(new UserInfo { UserId = Random.Shared.Next() });
-            packet.UserList.Add(new UserInfo { UserId = Random.Shared.Next() });
-            SendPacket(packet);
-
-            foreach(var item in packet.UserList)
-            {
-                Console.WriteLine($"TEST: {item.UserId}");
-            }
         }
 
         public override void OnDisconnected(EndPoint ep)
