@@ -17,7 +17,7 @@ namespace PacketGenerator
             try
             {
                 var json_string = File.ReadAllText(PDFilePath);
-                var root_object = JsonConvert.DeserializeObject<JObject>(json_string);
+                var root_object = JObject.Parse(json_string);
                 if (root_object == null)
                 {
                     throw new InvalidDataException($"Parse Json Failed.");

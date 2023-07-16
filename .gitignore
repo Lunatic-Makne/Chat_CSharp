@@ -403,3 +403,4 @@ PacketGenerator/Packet.cs
 PacketGenerator/PacketGenerator.exe.lnk
 /PacketGenerator/ServerPacketHandler.cs
 /PacketGenerator/ClientPacketHandler.cs
+*.lnk

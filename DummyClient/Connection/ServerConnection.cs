@@ -13,40 +13,6 @@ using Protocol.SharedStruct;
 
 namespace DummyClient.Connection
 {
-    class PacketHandler
-    {
-        public static bool Dispatch(ArraySegment<byte> buffer)
-        {
-            if (buffer.Array == null) { return false; }
-
-            int offset = 0;
-            var size = BitConverter.ToInt16(buffer.Array, buffer.Offset + offset);
-            offset += sizeof(short);
-            var id = BitConverter.ToInt64(buffer.Array, buffer.Offset + offset);
-            offset += sizeof(long);
-
-            if (size > buffer.Array.Length) { return false; }
-
-            switch ((Protocol.ServerToClient.PacketId)id)
-            {
-                case Protocol.ServerToClient.PacketId._LOGINREPLY_:
-                    var packet = new LoginReply();
-                    packet.Read(new ArraySegment<byte>(buffer.Array, buffer.Offset + offset, buffer.Count - offset));
-
-                    Console.WriteLine($"[S2C][WELCOME] UserId: [{packet.UserId}]");
-                    foreach(var info in packet.UserList)
-                    {
-                        Console.WriteLine($"[UserList] UserId: [{info.UserId}]");
-                    }
-                    break;
-                default:
-                    Console.WriteLine($"[PacketHandler] Unregistered PacketId[{id}].");
-                    return false;
-            }
-
-            return true;
-        }
-    }
     class ServerConnection : PacketHandleConnection
     {
 
@@ -54,11 +20,7 @@ namespace DummyClient.Connection
         {
             Console.WriteLine($"Connect to [{ep}]");
 
-            SendLogin();
-
-            Thread.Sleep(1000);
-
-            CloseConnection();
+            PacketHandler.SendCreateUser(this);
         }
 
         public override void OnDisconnected(EndPoint ep)
@@ -77,12 +39,6 @@ namespace DummyClient.Connection
         public override void OnSend(int byte_transferred)
         {
             Console.WriteLine($"Transferred : [{byte_transferred}]");
-        }
-
-        public void SendLogin()
-        {
-            var packet = new Login { Name = UserInfo.Inst.Name };
-            SendPacket(packet);
         }
     }
 }

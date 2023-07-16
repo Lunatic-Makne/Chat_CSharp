@@ -65,7 +65,8 @@ namespace PacketGenerator
             {
                 Console.WriteLine($"Generate Packet Start.");
                 var json_string = File.ReadAllText(PDFilePath);
-                var root_object = JsonConvert.DeserializeObject<JObject>(json_string);
+                var root_object = JObject.Parse(json_string);
+                if (root_object == null) throw new Exception($"Parse failed.");
 
                 // Shared
                 var shared_struct = root_object.GetValue(SHARED_STRUCT);
@@ -307,10 +308,14 @@ public abstract class IPacket
             var result = "";
             using (var reader = new StringReader(text))
             {
-                string line;
-                while ((line = reader.ReadLine()) != null)
+                if (reader != null)
                 {
-                    result += TAP + line + NEWLINE;
+                    var line = reader.ReadLine();
+                    while (line != null)
+                    {
+                        result += TAP + line + NEWLINE;
+                        line = reader.ReadLine();
+                    }
                 }
             }
 
@@ -342,6 +347,8 @@ public abstract class IPacket
                 switch (type_string)
                 {
                     case "string":
+                        result += type_string + " " + name_string + " = \"\"";
+                        break;
                     case "bool":
                     case "int":
                     case "short":
@@ -359,6 +366,17 @@ public abstract class IPacket
                             }
 
                             result += $"List<{SHARED_STRUCT}.{inner_type_string}> " + name_string + $" = new List<{SHARED_STRUCT}.{inner_type_string}>()";
+                        }
+                        break;
+                    case "struct":
+                        {
+                            var inner_type_string = prop_token.Value<string>(IN_TYPE);
+                            if (inner_type_string == null)
+                            {
+                                throw new InvalidDataException($"[ParseStructWhiteFunc][List] ParseProperties failed. target: \n{jobject}");
+                            }
+
+                            result += $"{SHARED_STRUCT}.{inner_type_string} " + name_string + $" = new {SHARED_STRUCT}.{inner_type_string}()";
                         }
                         break;
                     default:
@@ -394,11 +412,11 @@ public abstract class IPacket
                 switch (type_string)
                 {
                     case "string":
-                        result += $"var {name_string.ToLower()}_length = Encoding.Unicode.GetBytes({name_string}, 0, {name_string}.Length, buffer.Array, buffer.Offset + offset + sizeof(int));";
+                        result += $"var {name_string.ToLower()}_length = Encoding.Unicode.GetBytes({name_string}, span.Slice(offset + sizeof(int), span.Length - offset - sizeof(int)));";
                         result += NEWLINE;
                         result += $"result &= BitConverter.TryWriteBytes(span.Slice(offset, span.Length - offset), {name_string.ToLower()}_length);";
                         result += NEWLINE;
-                        result += "offset += sizeof(int); offset += name_length;";
+                        result += $"offset += sizeof(int); offset += {name_string.ToLower()}_length;";
                         result += NEWLINE;
                         break;
                     case "bool":
@@ -426,20 +444,27 @@ public abstract class IPacket
                         result += NEWLINE;
                         break;
                     case "float":
+                        result += $"result &= BitConverter.TryWriteBytes(span.Slice(offset, span.Length - offset), {name_string});";
+                        result += NEWLINE;
+                        result += "offset += sizeof(float);";
+                        result += NEWLINE;
                         break;
                     case "double":
+                        result += $"result &= BitConverter.TryWriteBytes(span.Slice(offset, span.Length - offset), {name_string});";
+                        result += NEWLINE;
+                        result += "offset += sizeof(double);";
+                        result += NEWLINE;
                         break;
                     case "list":
-                        result += $"result &= BitConverter.TryWriteBytes(span.Slice(offset, span.Length - offset), {name_string}.Count);";
-                        result += NEWLINE;
-                        result += "offset += sizeof(int);";
-                        result += NEWLINE;
-                        result += $"foreach( var element in {name_string} )";
-                        result += NEWLINE;
+                        result += $"result &= BitConverter.TryWriteBytes(span.Slice(offset, span.Length - offset), {name_string}.Count);" + NEWLINE;
+                        result += "offset += sizeof(int);" + NEWLINE;
+                        result += $"foreach( var element in {name_string} )" + NEWLINE;
                         result += START_SCOPE + NEWLINE;
-                        result += TAP + $"result &= element.Write(span, ref offset);";
-                        result += NEWLINE;
+                        result += TAP + $"result &= element.Write(span, ref offset);" + NEWLINE;
                         result += END_SCOPE + NEWLINE;
+                        break;
+                    case "struct":
+                        result += $"result &= {name_string}.Write(span, ref offset);" + NEWLINE;
                         break;
                     default:
                         throw new InvalidDataException($"[ParsePropertyWrite][Type] Invalid type[{type_string}]. target: \n{properties}");
@@ -475,7 +500,7 @@ public abstract class IPacket
                         result += NEWLINE;
                         result += $"offset += sizeof(int);";
                         result += NEWLINE;
-                        result += $"{name_string} = Encoding.Unicode.GetString(readonly_span.Slice(offset, readonly_span.Length - offset));";
+                        result += $"{name_string} = Encoding.Unicode.GetString(readonly_span.Slice(offset, {name_string.ToLower()}_length));";
                         result += NEWLINE;
                         result += $"offset += {name_string.ToLower()}_length;";
                         result += NEWLINE;
@@ -513,26 +538,33 @@ public abstract class IPacket
                     case "double":
                         break;
                     case "list":
-                        result += $"var {name_string}_list_count = BitConverter.ToInt32(readonly_span.Slice(offset, readonly_span.Length - offset));";
-                        result += NEWLINE;
-                        result += $"offset += sizeof(int);";
-                        result += NEWLINE;
-                        result += $"for(int i = 0; i < {name_string}_list_count; ++i)";
-                        result += NEWLINE;
-                        result += START_SCOPE + NEWLINE;
-
-                        var inner_type_string = prop_token.Value<string>(IN_TYPE);
-                        if (inner_type_string == null)
                         {
-                            throw new InvalidDataException($"[ParsePropertyRead][List] ParseProperties failed. target: \n{properties}");
+                            result += $"var {name_string}_list_count = BitConverter.ToInt32(readonly_span.Slice(offset, readonly_span.Length - offset));" + NEWLINE; 
+                            result += $"offset += sizeof(int);" + NEWLINE;
+                            result += $"for(int i = 0; i < {name_string}_list_count; ++i)" + NEWLINE;
+                            result += START_SCOPE + NEWLINE;
+
+                            var inner_type_string = prop_token.Value<string>(IN_TYPE);
+                            if (inner_type_string == null)
+                            {
+                                throw new InvalidDataException($"[ParsePropertyRead][List] ParseProperties failed. target: \n{properties}");
+                            }
+                            result += TAP + $"var element = new {SHARED_STRUCT}.{inner_type_string}();" + NEWLINE;
+                            result += TAP + $"element.Read(readonly_span, ref offset);" + NEWLINE;
+                            result += TAP + $"{name_string}.Add(element);" + NEWLINE;
+                            result += END_SCOPE + NEWLINE;
                         }
-                        result += TAP + $"var element = new {SHARED_STRUCT}.{inner_type_string}();";
-                        result += NEWLINE;
-                        result += TAP + $"element.Read(readonly_span, ref offset);";
-                        result += NEWLINE;
-                        result += TAP + $"{name_string}.Add(element);";
-                        result += NEWLINE;
-                        result += END_SCOPE + NEWLINE;                        
+                        break;
+                    case "struct":
+                        {
+                            var inner_type_string = prop_token.Value<string>(IN_TYPE);
+                            if (inner_type_string == null)
+                            {
+                                throw new InvalidDataException($"[ParsePropertyRead][List] ParseProperties failed. target: \n{properties}");
+                            }
+
+                            result += $"{name_string}.Read(readonly_span, ref offset);" + NEWLINE;
+                        }
                         break;
                     default:
                         throw new InvalidDataException($"[ParsePropertyRead][Type] Invalid type[{type_string}]. target: \n{properties}");
@@ -573,6 +605,17 @@ public abstract class IPacket
             return Indent(result);
         }
 
+        public static string ParseStructConstructor(string struct_name)
+        {
+            var result = "";
+
+            result += $"public {struct_name}()" + NEWLINE;
+            result += START_SCOPE + NEWLINE;
+            result += END_SCOPE + NEWLINE;
+
+            return Indent(result);
+        }
+
         public static string ParseStruct(JObject jobject)
         {
             var result = "";
@@ -593,6 +636,7 @@ public abstract class IPacket
             if (property_token != null)
             {
                 result += ParseProperty(property_token);
+                result += ParseStructConstructor(name_token.ToString());
                 result += ParseStructWriteFunc(property_token);
                 result += ParseStructReadFunc(property_token);
             }

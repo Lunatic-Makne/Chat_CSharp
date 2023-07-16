@@ -12,7 +12,8 @@ namespace DummyClient
         private static readonly Lazy<UserInfo> _Inst = new Lazy<UserInfo>(() => new UserInfo());
         public static UserInfo Inst { get { return _Inst.Value; } }
 
-        public string Name { get; set; } = new string("");
+        public string Name { get; set; } = "";
+        public string Password { get; set; } = "";
     }
 
     internal class DummyClient_Program
@@ -22,6 +23,9 @@ namespace DummyClient
         {
             Console.Write("Write your name: ");
             UserInfo.Inst.Name = Console.ReadLine();
+
+            Console.WriteLine("Write password: ");
+            UserInfo.Inst.Password = Console.ReadLine();
 
             if (Config.Inst.Load() == false)
             {
@@ -39,21 +43,32 @@ namespace DummyClient
             if (address_list.Length < 1) { return; }
             var ep = new IPEndPoint(address_list[0], Config.Inst.Info.target_port);
 
-            while (true)
+            try
             {
-                try
+                if (NetworkManager.Inst.Connect(ep))
                 {
-                    if (NetworkManager.Inst.Connect(ep) == false)
+                    while (true)
                     {
-                        break;
+                        Console.WriteLine("Write Message: ");
+                        var message = Console.ReadLine();
+                        if (message != null) 
+                        {
+                            if (message.ToLower() == "exit")
+                            {
+                                Console.WriteLine($"Goodbye.");
+                                break;
+                            }
+                        }
+                        else
+                        {
+                            break;
+                        }
                     }
                 }
-                catch (Exception ex)
-                {
-                    Console.WriteLine(ex.ToString());
-                }
-
-                Thread.Sleep(5000);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
             }
         }
     }

@@ -39,10 +39,12 @@ namespace NetworkCore
             }
             else
             {
-
-                Array.Copy(_Buffer.Array, _Buffer.Offset + _ReadPos, _Buffer.Array, _Buffer.Offset, before_data_size);
-                _ReadPos = 0;
-                _RecvPos = before_data_size;
+                if (_Buffer.Array != null)
+                {
+                    Array.Copy(_Buffer.Array, _Buffer.Offset + _ReadPos, _Buffer.Array, _Buffer.Offset, before_data_size);
+                    _ReadPos = 0;
+                    _RecvPos = before_data_size;
+                }
             }
         }
 

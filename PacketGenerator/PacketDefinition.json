@@ -7,6 +7,10 @@
         {
           "type": "long",
           "name": "UserId"
+        },
+        {
+          "type": "string",
+          "name": "UserName"
         }
       ]
     }
@@ -19,6 +23,24 @@
         {
           "type": "string",
           "name": "Name"
+        },
+        {
+          "type": "string",
+          "name": "Password"
+        }
+      ]
+    },
+    {
+      "definition_type": "packet",
+      "name": "CreateUser",
+      "properties": [
+        {
+          "type": "string",
+          "name": "UserName"
+        },
+        {
+          "type": "string",
+          "name": "Password"
         }
       ]
     }
@@ -29,6 +51,14 @@
       "name": "LoginReply",
       "properties": [
         {
+          "type": "bool",
+          "name": "Error"
+        },
+        {
+          "type": "string",
+          "name": "ErrorMessage"
+        },
+        {
           "type": "long",
           "name": "UserId"
         },
@@ -36,6 +66,25 @@
           "type": "list",
           "inner_type": "UserInfo",
           "name": "UserList"
+        }
+      ]
+    },
+    {
+      "definition_type": "packet",
+      "name": "CreateUserReply",
+      "properties": [
+        {
+          "type": "bool",
+          "name": "Error"
+        },
+        {
+          "type": "string",
+          "name": "ErrorMessage"
+        },
+        {
+          "type": "struct",
+          "inner_type": "UserInfo",
+          "name": "UserInfo"
         }
       ]
     }

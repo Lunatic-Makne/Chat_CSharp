@@ -1,4 +1,5 @@
-﻿using NetworkCore;
+﻿using ChatServer.User;
+using NetworkCore;
 using Protocol.ServerToClient;
 using Protocol.SharedStruct;
 using System;
@@ -13,24 +14,12 @@ namespace Protocol.ClientToServer
     {
         void LoginHandler(PacketHandleConnection connection, IPacket data)
         {
-            {
-                var packet = (Login)data;
+            UserManager.Inst.ProcessLogin(connection, (Login) data);
+        }
 
-                Console.WriteLine($"[C2S][HI] name: [{packet.Name}]");
-            }
-
-            {
-                var packet = new LoginReply { UserId = Random.Shared.Next() };
-                packet.UserList.Add(new UserInfo { UserId = Random.Shared.Next() });
-                packet.UserList.Add(new UserInfo { UserId = Random.Shared.Next() });
-                packet.UserList.Add(new UserInfo { UserId = Random.Shared.Next() });
-                connection.SendPacket(packet);
-
-                foreach (var item in packet.UserList)
-                {
-                    Console.WriteLine($"TEST: {item.UserId}");
-                }
-            }
+        void CreateUserHandler(PacketHandleConnection connection, IPacket data)
+        {
+            UserManager.Inst.ProcessCreateUser(connection, (CreateUser) data);            
         }
     }
 }

@@ -38,6 +38,8 @@ namespace Protocol.ClientToServer
 		{
 			_OnReceiveHandlerDic.Add((long)PacketId._LOGIN_, MakePacket<Login>);
 			_PacketHandlerDic.Add((long)PacketId._LOGIN_, LoginHandler);
+			_OnReceiveHandlerDic.Add((long)PacketId._CREATEUSER_, MakePacket<CreateUser>);
+			_PacketHandlerDic.Add((long)PacketId._CREATEUSER_, CreateUserHandler);
 		}
 	}
 }
