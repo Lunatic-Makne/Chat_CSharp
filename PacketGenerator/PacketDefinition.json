@@ -61,11 +61,6 @@
         {
           "type": "long",
           "name": "UserId"
-        },
-        {
-          "type": "list",
-          "inner_type": "UserInfo",
-          "name": "UserList"
         }
       ]
     },
@@ -85,6 +80,47 @@
           "type": "struct",
           "inner_type": "UserInfo",
           "name": "UserInfo"
+        }
+      ]
+    },
+    {
+      "definition_type": "packet",
+      "name": "EnterChannel",
+      "properties": [
+        {
+          "type": "long",
+          "name": "ChannelId"
+        },
+        {
+          "type": "struct",
+          "inner_type": "UserInfo",
+          "name": "Entered"
+        }
+      ]
+    },
+    {
+      "definition_type": "packet",
+      "name": "LeaveChannel",
+      "properties": [
+        {
+          "type": "long",
+          "name": "ChannelId"
+        },
+        {
+          "type": "struct",
+          "inner_type": "UserInfo",
+          "name": "Leaved"
+        }
+      ]
+    },
+    {
+      "definition_type": "packet",
+      "name": "ChannelUserList",
+      "properties": [
+        {
+          "type": "list",
+          "inner_type": "UserInfo",
+          "name": "UserList"
         }
       ]
     }

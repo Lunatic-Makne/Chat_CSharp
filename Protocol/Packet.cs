@@ -20,6 +20,9 @@ namespace Protocol
 			_Unknown_ = 0
 			, _LOGINREPLY_
 			, _CREATEUSERREPLY_
+			, _ENTERCHANNEL_
+			, _LEAVECHANNEL_
+			, _CHANNELUSERLIST_
 			, _MAX_
 		}
 	}
@@ -204,7 +207,6 @@ namespace Protocol
 			public bool Error;
 			public string ErrorMessage = "";
 			public long UserId;
-			public List<SharedStruct.UserInfo> UserList = new List<SharedStruct.UserInfo>();
 			
 			public LoginReply() : base((long)PacketId._LOGINREPLY_)
 			{
@@ -225,12 +227,6 @@ namespace Protocol
 				offset += sizeof(int); offset += errormessage_length;
 				result &= BitConverter.TryWriteBytes(span.Slice(offset, span.Length - offset), UserId);
 				offset += sizeof(long);
-				result &= BitConverter.TryWriteBytes(span.Slice(offset, span.Length - offset), UserList.Count);
-				offset += sizeof(int);
-				foreach( var element in UserList )
-				{
-					result &= element.Write(span, ref offset);
-				}
 				
 				if (result == false) { return 0; }
 				
@@ -250,14 +246,6 @@ namespace Protocol
 				offset += errormessage_length;
 				UserId = BitConverter.ToInt64(readonly_span.Slice(offset, readonly_span.Length - offset));
 				offset += sizeof(long);
-				var UserList_list_count = BitConverter.ToInt32(readonly_span.Slice(offset, readonly_span.Length - offset));
-				offset += sizeof(int);
-				for(int i = 0; i < UserList_list_count; ++i)
-				{
-					var element = new SharedStruct.UserInfo();
-					element.Read(readonly_span, ref offset);
-					UserList.Add(element);
-				}
 				return true;
 			}
 		}
@@ -303,6 +291,124 @@ namespace Protocol
 				ErrorMessage = Encoding.Unicode.GetString(readonly_span.Slice(offset, errormessage_length));
 				offset += errormessage_length;
 				UserInfo.Read(readonly_span, ref offset);
+				return true;
+			}
+		}
+		public class EnterChannel : IPacket
+		{
+			public long ChannelId;
+			public SharedStruct.UserInfo Entered = new SharedStruct.UserInfo();
+			
+			public EnterChannel() : base((long)PacketId._ENTERCHANNEL_)
+			{
+			}
+			protected override int WriteImpl(ArraySegment<byte> buffer)
+			{
+				if (buffer.Array == null) { return 0; }
+				
+				var offset = base.WriteImpl(buffer);
+				if (offset == 0) { return 0; }
+				
+				bool result = true;
+				var span = new Span<byte>(buffer.Array, buffer.Offset, buffer.Count);
+				result &= BitConverter.TryWriteBytes(span.Slice(offset, span.Length - offset), ChannelId);
+				offset += sizeof(long);
+				result &= Entered.Write(span, ref offset);
+				
+				if (result == false) { return 0; }
+				
+				return offset;
+			}
+			public override bool Read(ArraySegment<byte> buffer)
+			{
+				if (buffer.Array == null) { return false; }
+				
+				var readonly_span = new ReadOnlySpan<byte>(buffer.Array, buffer.Offset, buffer.Count);
+				int offset = 0;
+				ChannelId = BitConverter.ToInt64(readonly_span.Slice(offset, readonly_span.Length - offset));
+				offset += sizeof(long);
+				Entered.Read(readonly_span, ref offset);
+				return true;
+			}
+		}
+		public class LeaveChannel : IPacket
+		{
+			public long ChannelId;
+			public SharedStruct.UserInfo Leaved = new SharedStruct.UserInfo();
+			
+			public LeaveChannel() : base((long)PacketId._LEAVECHANNEL_)
+			{
+			}
+			protected override int WriteImpl(ArraySegment<byte> buffer)
+			{
+				if (buffer.Array == null) { return 0; }
+				
+				var offset = base.WriteImpl(buffer);
+				if (offset == 0) { return 0; }
+				
+				bool result = true;
+				var span = new Span<byte>(buffer.Array, buffer.Offset, buffer.Count);
+				result &= BitConverter.TryWriteBytes(span.Slice(offset, span.Length - offset), ChannelId);
+				offset += sizeof(long);
+				result &= Leaved.Write(span, ref offset);
+				
+				if (result == false) { return 0; }
+				
+				return offset;
+			}
+			public override bool Read(ArraySegment<byte> buffer)
+			{
+				if (buffer.Array == null) { return false; }
+				
+				var readonly_span = new ReadOnlySpan<byte>(buffer.Array, buffer.Offset, buffer.Count);
+				int offset = 0;
+				ChannelId = BitConverter.ToInt64(readonly_span.Slice(offset, readonly_span.Length - offset));
+				offset += sizeof(long);
+				Leaved.Read(readonly_span, ref offset);
+				return true;
+			}
+		}
+		public class ChannelUserList : IPacket
+		{
+			public List<SharedStruct.UserInfo> UserList = new List<SharedStruct.UserInfo>();
+			
+			public ChannelUserList() : base((long)PacketId._CHANNELUSERLIST_)
+			{
+			}
+			protected override int WriteImpl(ArraySegment<byte> buffer)
+			{
+				if (buffer.Array == null) { return 0; }
+				
+				var offset = base.WriteImpl(buffer);
+				if (offset == 0) { return 0; }
+				
+				bool result = true;
+				var span = new Span<byte>(buffer.Array, buffer.Offset, buffer.Count);
+				result &= BitConverter.TryWriteBytes(span.Slice(offset, span.Length - offset), UserList.Count);
+				offset += sizeof(int);
+				foreach( var element in UserList )
+				{
+					result &= element.Write(span, ref offset);
+				}
+				
+				if (result == false) { return 0; }
+				
+				return offset;
+			}
+			public override bool Read(ArraySegment<byte> buffer)
+			{
+				if (buffer.Array == null) { return false; }
+				
+				var readonly_span = new ReadOnlySpan<byte>(buffer.Array, buffer.Offset, buffer.Count);
+				int offset = 0;
+				var UserList_list_count = BitConverter.ToInt32(readonly_span.Slice(offset, readonly_span.Length - offset));
+				offset += sizeof(int);
+				for(int i = 0; i < UserList_list_count; ++i)
+				{
+					var element = new SharedStruct.UserInfo();
+					element.Read(readonly_span, ref offset);
+					UserList.Add(element);
+				}
 				return true;
 			}
 		}

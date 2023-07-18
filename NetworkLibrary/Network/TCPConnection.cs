@@ -8,7 +8,7 @@ namespace NetworkCore
 {
     public abstract class TCPConnection
     {
-        public long ConnectionID { get; private set; } = 0;
+        public long ConnectionID { get; set; } = 0;
         public IPEndPoint RemoteAddr { get; private set; } = new IPEndPoint(0, 0);
 
         [AllowNull]

@@ -1,4 +1,5 @@
-﻿using NetworkCore;
+﻿using ChatServer.User;
+using NetworkCore;
 using Protocol;
 using Protocol.ClientToServer;
 using Protocol.ServerToClient;
@@ -31,6 +32,7 @@ namespace ChatServer.Connection
         public override void OnDisconnected(EndPoint ep)
         {
             Console.WriteLine($"Disconnected. Addr[{RemoteAddr}]");
+            UserManager.Inst.RemoveUser(ConnectionID);
             NetworkManager.Inst.UnregisterTCPConnection(ConnectionID);
         }
     }

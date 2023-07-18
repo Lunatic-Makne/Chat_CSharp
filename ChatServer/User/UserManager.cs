@@ -1,4 +1,5 @@
-﻿using ChatServer.Connection;
+﻿using ChatServer.Channel;
+using ChatServer.Connection;
 using NetworkCore;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -10,6 +11,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace ChatServer.User
@@ -76,23 +78,10 @@ namespace ChatServer.User
             return stringBuilder.ToString();
         }
 
-        
-        bool LoginAuthentication(string user_name, string password)
-        {
-            lock (_AuthLock)
-            {
-                if (_AuthDic.ContainsKey(user_name) == false) { return false; }
-
-                var auth_info = _AuthDic[user_name];
-                if (auth_info.Password != SHA256Hash(password)) { return false; }
-            }
-
-            return true;
-        }
-
+        private object _UserLock = new object();
         private Dictionary<long, User> _UserDic = new Dictionary<long, User>();
 
-        bool CreateNewUser(PacketHandleConnection connection, string user_name, string password)
+        bool RegistNewUser(PacketHandleConnection connection, string user_name, string password)
         {
             lock(_AuthLock)
             {
@@ -109,50 +98,82 @@ namespace ChatServer.User
             return true;
         }
 
+        public bool RemoveUser(long connection_id)
+        {
+            User user;
+            lock(_AuthLock)
+            {
+                if (_UserDic.ContainsKey(connection_id) == false) { return false; }
+
+                user = _UserDic[connection_id];
+
+                _UserDic.Remove(connection_id);
+            }
+
+            user.LeaveChannel();
+            
+            return true;
+        }
     }
 
     partial class UserManager
     {
+        private void SendLoginFailed(PacketHandleConnection connection, string message)
+        {
+            var reply = new Protocol.ServerToClient.LoginReply();
+            reply.Error = true;
+            reply.ErrorMessage = message;
+            connection.SendPacket(reply);
+        }
         public void ProcessLogin(PacketHandleConnection connection, Protocol.ClientToServer.Login packet)
         {
             Console.WriteLine($"[C2S][Login] packet: [{packet}]");
 
-            if (LoginAuthentication(packet.Name, packet.Password) == false)
+            // Auth
+            UserAuthentication auth_info;
+            lock (_AuthLock)
             {
-                Console.WriteLine($"[C2S][Login] Login Success. user[{packet.Name}]");
-
-                var reply = new Protocol.ServerToClient.LoginReply();
-                reply.Error = true;
-                reply.ErrorMessage = $"Password miss match";
-                connection.SendPacket(reply);
-
-                return;
-            }
-
-            lock(_AuthLock)
-            {
-                UserAuthentication auth_info; 
-                if (_AuthDic.TryGetValue(packet.Name, out auth_info) == false)
+                if (_AuthDic.ContainsKey(packet.Name) == false) 
                 {
                     Console.WriteLine($"[CS2][Login] Not found auth info. name[{packet.Name}]");
 
-                    var reply = new Protocol.ServerToClient.LoginReply();
-                    reply.Error = true;
-                    reply.ErrorMessage = $"Not found auth info";
-                    connection.SendPacket(reply);
+                    SendLoginFailed(connection, $"Not found auth info");
+                    return;
                 }
-                var user = new User((UserConnection)connection, auth_info);
-                _UserDic.Add(auth_info.UserId, user);
 
+                auth_info = _AuthDic[packet.Name];
+                if (auth_info.Password != SHA256Hash(packet.Password)) 
                 {
-                    var reply = new Protocol.ServerToClient.LoginReply();
-                    reply.UserId = user.UserId;
-                    foreach(var element in _UserDic.Values)
-                    {
-                        reply.UserList.Add(new Protocol.SharedStruct.UserInfo { UserId = element.UserId, UserName = element.UserName});
-                    }
-                    user.SendPacket(reply);
+                    SendLoginFailed(connection, $"Password missmatch");
+                    return;
                 }
+            }
+
+            User user = new User((UserConnection)connection, auth_info);
+            lock (_UserLock) 
+            {
+                if (_UserDic.ContainsKey(connection.ConnectionID) == false)
+                {
+                    _UserDic.Add(connection.ConnectionID, user);
+                }
+                else
+                {
+                    _UserDic[connection.ConnectionID] = user;
+                }
+            }
+
+            // Enter Channel
+            // [TODO] 일단은 기본 1채널로 다 고정 입장. 이후 로드밸런서 추가하자
+            const long DEFAULT_CHANNEL_ID = 1;
+            if (user.EnterChannel(DEFAULT_CHANNEL_ID) == false)
+            {
+                SendLoginFailed(connection, $"Enter Channel failed");
+            }
+            else
+            {
+                var reply = new Protocol.ServerToClient.LoginReply();
+                reply.UserId = user.UserId;
+                user.SendPacket(reply);
             }
         }
 
@@ -160,11 +181,11 @@ namespace ChatServer.User
         {
             Console.WriteLine($"[C2S][CreateUser] packet: [{packet}]");
             
-            var result = CreateNewUser(conn, packet.UserName, packet.Password);
+            var result = RegistNewUser(conn, packet.UserName, packet.Password);
             if (result == false)
             {
                 var reply = new Protocol.ServerToClient.CreateUserReply();
-                reply.Error = result;
+                reply.Error = true;
                 reply.ErrorMessage = $"Create User failed.";
                 conn.SendPacket(reply);
             }

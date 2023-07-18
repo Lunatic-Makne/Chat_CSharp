@@ -70,6 +70,7 @@ namespace NetworkCore
                 var conn = _ConnectionFactory.Invoke();
                 if (conn == null) { return; }
 
+                conn.ConnectionID = conn_id;
                 conn.SetSocket(socket);
 
                 if (RegisterTCPConnection(conn_id, conn) == false)

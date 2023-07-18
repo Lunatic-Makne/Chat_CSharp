@@ -40,6 +40,12 @@ namespace Protocol.ServerToClient
 			_PacketHandlerDic.Add((long)PacketId._LOGINREPLY_, LoginReplyHandler);
 			_OnReceiveHandlerDic.Add((long)PacketId._CREATEUSERREPLY_, MakePacket<CreateUserReply>);
 			_PacketHandlerDic.Add((long)PacketId._CREATEUSERREPLY_, CreateUserReplyHandler);
+			_OnReceiveHandlerDic.Add((long)PacketId._ENTERCHANNEL_, MakePacket<EnterChannel>);
+			_PacketHandlerDic.Add((long)PacketId._ENTERCHANNEL_, EnterChannelHandler);
+			_OnReceiveHandlerDic.Add((long)PacketId._LEAVECHANNEL_, MakePacket<LeaveChannel>);
+			_PacketHandlerDic.Add((long)PacketId._LEAVECHANNEL_, LeaveChannelHandler);
+			_OnReceiveHandlerDic.Add((long)PacketId._CHANNELUSERLIST_, MakePacket<ChannelUserList>);
+			_PacketHandlerDic.Add((long)PacketId._CHANNELUSERLIST_, ChannelUserListHandler);
 		}
 	}
 }
