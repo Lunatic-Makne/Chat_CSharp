@@ -43,6 +43,16 @@
           "name": "Password"
         }
       ]
+    },
+    {
+      "definition_type":"packet",
+      "name": "SendChat",
+      "properties": [
+        {
+          "type": "string",
+          "name": "message"
+        }
+      ]
     }
   ],
   "ServerToClient": [
@@ -121,6 +131,21 @@
           "type": "list",
           "inner_type": "UserInfo",
           "name": "UserList"
+        }
+      ]
+    },
+    {
+      "definition_type":"packet",
+      "name": "ReceiveChat",
+      "properties": [
+        {
+          "type": "struct",
+          "inner_type": "UserInfo",
+          "name": "UserInfo"
+        },
+        {
+          "type": "string",
+          "name": "Message"
         }
       ]
     }

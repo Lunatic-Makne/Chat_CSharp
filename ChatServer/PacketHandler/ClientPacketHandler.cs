@@ -40,6 +40,8 @@ namespace Protocol.ClientToServer
 			_PacketHandlerDic.Add((long)PacketId._LOGIN_, LoginHandler);
 			_OnReceiveHandlerDic.Add((long)PacketId._CREATEUSER_, MakePacket<CreateUser>);
 			_PacketHandlerDic.Add((long)PacketId._CREATEUSER_, CreateUserHandler);
+			_OnReceiveHandlerDic.Add((long)PacketId._SENDCHAT_, MakePacket<SendChat>);
+			_PacketHandlerDic.Add((long)PacketId._SENDCHAT_, SendChatHandler);
 		}
 	}
 }

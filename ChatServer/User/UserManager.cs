@@ -101,7 +101,7 @@ namespace ChatServer.User
         public bool RemoveUser(long connection_id)
         {
             User user;
-            lock(_AuthLock)
+            lock(_UserLock)
             {
                 if (_UserDic.ContainsKey(connection_id) == false) { return false; }
 
@@ -113,6 +113,16 @@ namespace ChatServer.User
             user.LeaveChannel();
             
             return true;
+        }
+
+        public User? GetUser(PacketHandleConnection connection)
+        {
+            lock(_UserLock)
+            {
+                if (_UserDic.ContainsKey(connection.ConnectionID) == false) { return null; }
+
+                return _UserDic[connection.ConnectionID];
+            }
         }
     }
 

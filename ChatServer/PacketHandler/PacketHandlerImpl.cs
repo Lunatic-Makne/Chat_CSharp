@@ -14,12 +14,31 @@ namespace Protocol.ClientToServer
     {
         void LoginHandler(PacketHandleConnection connection, IPacket data)
         {
-            UserManager.Inst.ProcessLogin(connection, (Login) data);
+            var packet = data as Login;
+            if (packet != null)
+            {
+                UserManager.Inst.ProcessLogin(connection, packet);
+            }
+            
         }
 
         void CreateUserHandler(PacketHandleConnection connection, IPacket data)
         {
-            UserManager.Inst.ProcessCreateUser(connection, (CreateUser) data);            
+            var packet = data as CreateUser;
+            if (packet != null)
+            {
+                UserManager.Inst.ProcessCreateUser(connection, packet);
+            }
+        }
+
+        void SendChatHandler(PacketHandleConnection connection, IPacket data)
+        {
+            var packet = data as SendChat;
+            var user = UserManager.Inst.GetUser(connection);
+            if (user != null && packet != null)
+            {
+                user.ProcessSendChat(packet);
+            }
         }
     }
 }

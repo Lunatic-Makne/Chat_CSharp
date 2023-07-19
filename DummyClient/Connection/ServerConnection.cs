@@ -13,7 +13,7 @@ using Protocol.SharedStruct;
 
 namespace DummyClient.Connection
 {
-    class ServerConnection : PacketHandleConnection
+    public class ServerConnection : PacketHandleConnection
     {
 
         public override void OnConnected(EndPoint ep)
@@ -21,6 +21,8 @@ namespace DummyClient.Connection
             Console.WriteLine($"Connect to [{ep}]");
 
             PacketHandler.SendCreateUser(this);
+
+            UserInfo.Inst.Connection = this;
         }
 
         public override void OnDisconnected(EndPoint ep)

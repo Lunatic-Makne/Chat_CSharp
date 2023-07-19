@@ -10,6 +10,7 @@ namespace Protocol
 			_Unknown_ = 0
 			, _LOGIN_
 			, _CREATEUSER_
+			, _SENDCHAT_
 			, _MAX_
 		}
 	}
@@ -23,6 +24,7 @@ namespace Protocol
 			, _ENTERCHANNEL_
 			, _LEAVECHANNEL_
 			, _CHANNELUSERLIST_
+			, _RECEIVECHAT_
 			, _MAX_
 		}
 	}
@@ -196,6 +198,43 @@ namespace Protocol
 				offset += sizeof(int);
 				Password = Encoding.Unicode.GetString(readonly_span.Slice(offset, password_length));
 				offset += password_length;
+				return true;
+			}
+		}
+		public class SendChat : IPacket
+		{
+			public string message = "";
+			
+			public SendChat() : base((long)PacketId._SENDCHAT_)
+			{
+			}
+			protected override int WriteImpl(ArraySegment<byte> buffer)
+			{
+				if (buffer.Array == null) { return 0; }
+				
+				var offset = base.WriteImpl(buffer);
+				if (offset == 0) { return 0; }
+				
+				bool result = true;
+				var span = new Span<byte>(buffer.Array, buffer.Offset, buffer.Count);
+				var message_length = Encoding.Unicode.GetBytes(message, span.Slice(offset + sizeof(int), span.Length - offset - sizeof(int)));
+				result &= BitConverter.TryWriteBytes(span.Slice(offset, span.Length - offset), message_length);
+				offset += sizeof(int); offset += message_length;
+				
+				if (result == false) { return 0; }
+				
+				return offset;
+			}
+			public override bool Read(ArraySegment<byte> buffer)
+			{
+				if (buffer.Array == null) { return false; }
+				
+				var readonly_span = new ReadOnlySpan<byte>(buffer.Array, buffer.Offset, buffer.Count);
+				int offset = 0;
+				var message_length = BitConverter.ToInt32(readonly_span.Slice(offset, readonly_span.Length - offset));
+				offset += sizeof(int);
+				message = Encoding.Unicode.GetString(readonly_span.Slice(offset, message_length));
+				offset += message_length;
 				return true;
 			}
 		}
@@ -409,6 +448,46 @@ namespace Protocol
 					element.Read(readonly_span, ref offset);
 					UserList.Add(element);
 				}
+				return true;
+			}
+		}
+		public class ReceiveChat : IPacket
+		{
+			public SharedStruct.UserInfo UserInfo = new SharedStruct.UserInfo();
+			public string Message = "";
+			
+			public ReceiveChat() : base((long)PacketId._RECEIVECHAT_)
+			{
+			}
+			protected override int WriteImpl(ArraySegment<byte> buffer)
+			{
+				if (buffer.Array == null) { return 0; }
+				
+				var offset = base.WriteImpl(buffer);
+				if (offset == 0) { return 0; }
+				
+				bool result = true;
+				var span = new Span<byte>(buffer.Array, buffer.Offset, buffer.Count);
+				result &= UserInfo.Write(span, ref offset);
+				var message_length = Encoding.Unicode.GetBytes(Message, span.Slice(offset + sizeof(int), span.Length - offset - sizeof(int)));
+				result &= BitConverter.TryWriteBytes(span.Slice(offset, span.Length - offset), message_length);
+				offset += sizeof(int); offset += message_length;
+				
+				if (result == false) { return 0; }
+				
+				return offset;
+			}
+			public override bool Read(ArraySegment<byte> buffer)
+			{
+				if (buffer.Array == null) { return false; }
+				
+				var readonly_span = new ReadOnlySpan<byte>(buffer.Array, buffer.Offset, buffer.Count);
+				int offset = 0;
+				UserInfo.Read(readonly_span, ref offset);
+				var message_length = BitConverter.ToInt32(readonly_span.Slice(offset, readonly_span.Length - offset));
+				offset += sizeof(int);
+				Message = Encoding.Unicode.GetString(readonly_span.Slice(offset, message_length));
+				offset += message_length;
 				return true;
 			}
 		}

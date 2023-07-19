@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 namespace ChatServer.User
 {
 
-    public class User
+    public partial class User
     {
         UserConnection _Connection;
         UserAuthentication _AuthInfo;
@@ -81,6 +81,11 @@ namespace ChatServer.User
             }
 
             return true;
+        }
+
+        public Channel.Channel? GetChannel()
+        {
+            return ChannelManager.Inst.Find(ChannelId);
         }
     }
 }

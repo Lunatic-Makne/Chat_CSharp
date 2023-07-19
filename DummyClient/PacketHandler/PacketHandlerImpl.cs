@@ -70,5 +70,14 @@ namespace Protocol.ServerToClient
                 Console.WriteLine($"[ChannelUserList] User[{user_info.UserId}:{user_info.UserName}]");
             }
         }
+
+        void ReceiveChatHandler(PacketHandleConnection connection, IPacket data)
+        {
+            var packet = data as ReceiveChat;
+            if ( packet != null )
+            {
+                Console.WriteLine($"[ReceiveChat] user[{packet.UserInfo.UserId}:{packet.UserInfo.UserName}] message: {packet.Message}");
+            }
+        }
     }
 }

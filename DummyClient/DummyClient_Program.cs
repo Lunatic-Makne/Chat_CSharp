@@ -1,6 +1,7 @@
 ﻿using ChatClient;
 using DummyClient.Connection;
 using NetworkCore;
+using Protocol.ClientToServer;
 using System.Net;
 
 
@@ -14,6 +15,8 @@ namespace DummyClient
 
         public string Name { get; set; } = "";
         public string Password { get; set; } = "";
+
+        public ServerConnection Connection { get; set; }
     }
 
     internal class DummyClient_Program
@@ -57,6 +60,12 @@ namespace DummyClient
                             {
                                 Console.WriteLine($"Goodbye.");
                                 break;
+                            }
+
+                            if (UserInfo.Inst.Connection != null)
+                            {
+                                var packet = new SendChat { message = message };
+                                UserInfo.Inst.Connection.SendPacket(packet);
                             }
                         }
                         else
