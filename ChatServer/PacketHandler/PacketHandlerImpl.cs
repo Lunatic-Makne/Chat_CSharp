@@ -40,5 +40,15 @@ namespace Protocol.ClientToServer
                 user.ProcessSendChat(packet);
             }
         }
+
+        void MoveChannelHandler(PacketHandleConnection connection, IPacket data)
+        {
+            var packet = data as MoveChannel;
+            var user = UserManager.Inst.GetUser(connection);
+            if (user != null && packet != null)
+            {
+                user.ProcessMoveChannel(packet);
+            }
+        }
     }
 }

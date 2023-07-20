@@ -48,6 +48,8 @@ namespace Protocol.ServerToClient
 			_PacketHandlerDic.Add((long)PacketId._CHANNELUSERLIST_, ChannelUserListHandler);
 			_OnReceiveHandlerDic.Add((long)PacketId._RECEIVECHAT_, MakePacket<ReceiveChat>);
 			_PacketHandlerDic.Add((long)PacketId._RECEIVECHAT_, ReceiveChatHandler);
+			_OnReceiveHandlerDic.Add((long)PacketId._MOVECHANNELREPLY_, MakePacket<MoveChannelReply>);
+			_PacketHandlerDic.Add((long)PacketId._MOVECHANNELREPLY_, MoveChannelReplyHandler);
 		}
 	}
 }

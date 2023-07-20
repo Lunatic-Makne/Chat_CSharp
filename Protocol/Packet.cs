@@ -11,6 +11,7 @@ namespace Protocol
 			, _LOGIN_
 			, _CREATEUSER_
 			, _SENDCHAT_
+			, _MOVECHANNEL_
 			, _MAX_
 		}
 	}
@@ -25,6 +26,7 @@ namespace Protocol
 			, _LEAVECHANNEL_
 			, _CHANNELUSERLIST_
 			, _RECEIVECHAT_
+			, _MOVECHANNELREPLY_
 			, _MAX_
 		}
 	}
@@ -238,6 +240,40 @@ namespace Protocol
 				return true;
 			}
 		}
+		public class MoveChannel : IPacket
+		{
+			public long ChannelId;
+			
+			public MoveChannel() : base((long)PacketId._MOVECHANNEL_)
+			{
+			}
+			protected override int WriteImpl(ArraySegment<byte> buffer)
+			{
+				if (buffer.Array == null) { return 0; }
+				
+				var offset = base.WriteImpl(buffer);
+				if (offset == 0) { return 0; }
+				
+				bool result = true;
+				var span = new Span<byte>(buffer.Array, buffer.Offset, buffer.Count);
+				result &= BitConverter.TryWriteBytes(span.Slice(offset, span.Length - offset), ChannelId);
+				offset += sizeof(long);
+				
+				if (result == false) { return 0; }
+				
+				return offset;
+			}
+			public override bool Read(ArraySegment<byte> buffer)
+			{
+				if (buffer.Array == null) { return false; }
+				
+				var readonly_span = new ReadOnlySpan<byte>(buffer.Array, buffer.Offset, buffer.Count);
+				int offset = 0;
+				ChannelId = BitConverter.ToInt64(readonly_span.Slice(offset, readonly_span.Length - offset));
+				offset += sizeof(long);
+				return true;
+			}
+		}
 	}
 	namespace ServerToClient
 	{
@@ -409,6 +445,7 @@ namespace Protocol
 		}
 		public class ChannelUserList : IPacket
 		{
+			public long ChannelId;
 			public List<SharedStruct.UserInfo> UserList = new List<SharedStruct.UserInfo>();
 			
 			public ChannelUserList() : base((long)PacketId._CHANNELUSERLIST_)
@@ -423,6 +460,8 @@ namespace Protocol
 				
 				bool result = true;
 				var span = new Span<byte>(buffer.Array, buffer.Offset, buffer.Count);
+				result &= BitConverter.TryWriteBytes(span.Slice(offset, span.Length - offset), ChannelId);
+				offset += sizeof(long);
 				result &= BitConverter.TryWriteBytes(span.Slice(offset, span.Length - offset), UserList.Count);
 				offset += sizeof(int);
 				foreach( var element in UserList )
@@ -440,6 +479,8 @@ namespace Protocol
 				
 				var readonly_span = new ReadOnlySpan<byte>(buffer.Array, buffer.Offset, buffer.Count);
 				int offset = 0;
+				ChannelId = BitConverter.ToInt64(readonly_span.Slice(offset, readonly_span.Length - offset));
+				offset += sizeof(long);
 				var UserList_list_count = BitConverter.ToInt32(readonly_span.Slice(offset, readonly_span.Length - offset));
 				offset += sizeof(int);
 				for(int i = 0; i < UserList_list_count; ++i)
@@ -488,6 +529,45 @@ namespace Protocol
 				offset += sizeof(int);
 				Message = Encoding.Unicode.GetString(readonly_span.Slice(offset, message_length));
 				offset += message_length;
+				return true;
+			}
+		}
+		public class MoveChannelReply : IPacket
+		{
+			public bool Error;
+			public long ChannelId;
+			
+			public MoveChannelReply() : base((long)PacketId._MOVECHANNELREPLY_)
+			{
+			}
+			protected override int WriteImpl(ArraySegment<byte> buffer)
+			{
+				if (buffer.Array == null) { return 0; }
+				
+				var offset = base.WriteImpl(buffer);
+				if (offset == 0) { return 0; }
+				
+				bool result = true;
+				var span = new Span<byte>(buffer.Array, buffer.Offset, buffer.Count);
+				result &= BitConverter.TryWriteBytes(span.Slice(offset, span.Length - offset), Error);
+				offset += sizeof(bool);
+				result &= BitConverter.TryWriteBytes(span.Slice(offset, span.Length - offset), ChannelId);
+				offset += sizeof(long);
+				
+				if (result == false) { return 0; }
+				
+				return offset;
+			}
+			public override bool Read(ArraySegment<byte> buffer)
+			{
+				if (buffer.Array == null) { return false; }
+				
+				var readonly_span = new ReadOnlySpan<byte>(buffer.Array, buffer.Offset, buffer.Count);
+				int offset = 0;
+				Error = BitConverter.ToBoolean(readonly_span.Slice(offset, readonly_span.Length - offset));
+				offset += sizeof(bool);
+				ChannelId = BitConverter.ToInt64(readonly_span.Slice(offset, readonly_span.Length - offset));
+				offset += sizeof(long);
 				return true;
 			}
 		}

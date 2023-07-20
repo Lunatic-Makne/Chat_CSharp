@@ -21,7 +21,33 @@ namespace DummyClient
 
     internal class DummyClient_Program
     {
+        static bool Command(string command)
+        {
+            switch(command.ToLower())
+            {
+                case "movechannel":
+                    {
+                        Console.Write("Channel: ");
+                        var ch_string = Console.ReadLine();
+                        if (string.IsNullOrWhiteSpace(ch_string))
+                        {
+                            return true;
+                        }
 
+                        var ch = Convert.ToInt64(ch_string);
+                        
+                        if (UserInfo.Inst.Connection != null)
+                        {
+                            var req = new MoveChannel();
+                            req.ChannelId = ch;
+                            UserInfo.Inst.Connection.SendPacket(req);
+                        }
+                    }
+                    return true;
+                default:
+                    return false;
+            }
+        }
         static void Main(string[] args)
         {
             Console.Write("Write your name: ");
@@ -61,6 +87,8 @@ namespace DummyClient
                                 Console.WriteLine($"Goodbye.");
                                 break;
                             }
+
+                            if (Command(message)) { continue; }
 
                             if (UserInfo.Inst.Connection != null)
                             {

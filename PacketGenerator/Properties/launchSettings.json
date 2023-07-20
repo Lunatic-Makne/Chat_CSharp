@@ -2,7 +2,7 @@
   "profiles": {
     "PacketGenerator": {
       "commandName": "Project",
-      "commandLineArgs": "ServerHandler",
+      "commandLineArgs": "Packet",
       "workingDirectory": "D:\\Dev\\Chat_CSharp\\PacketGenerator"
     }
   }

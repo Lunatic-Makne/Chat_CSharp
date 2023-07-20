@@ -46,10 +46,11 @@ namespace ChatServer.User
             var channel = ChannelManager.Inst.Find(channel_id);
             if (channel == null) { return false; };
 
-            ChannelId = 1;
+            ChannelId = channel_id;
 
             {
                 var reply = new Protocol.ServerToClient.ChannelUserList();
+                reply.ChannelId = channel_id;
                 channel.GetUserList(reply.UserList);
                 SendPacket(reply);
             }

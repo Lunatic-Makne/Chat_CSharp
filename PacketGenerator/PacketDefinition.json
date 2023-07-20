@@ -53,6 +53,16 @@
           "name": "message"
         }
       ]
+    },
+    {
+      "definition_type":"packet",
+      "name": "MoveChannel",
+      "properties": [
+        {
+          "type": "long",
+          "name": "ChannelId"
+        }
+      ]
     }
   ],
   "ServerToClient": [
@@ -128,6 +138,10 @@
       "name": "ChannelUserList",
       "properties": [
         {
+          "type": "long",
+          "name": "ChannelId"
+        },
+        {
           "type": "list",
           "inner_type": "UserInfo",
           "name": "UserList"
@@ -146,6 +160,20 @@
         {
           "type": "string",
           "name": "Message"
+        }
+      ]
+    },
+    {
+      "definition_type": "packet",
+      "name" : "MoveChannelReply",
+      "properties":[
+        {
+          "type": "bool",
+          "name": "Error"
+        },
+        {
+          "type": "long",
+          "name": "ChannelId"
         }
       ]
     }

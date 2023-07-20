@@ -42,6 +42,8 @@ namespace Protocol.ClientToServer
 			_PacketHandlerDic.Add((long)PacketId._CREATEUSER_, CreateUserHandler);
 			_OnReceiveHandlerDic.Add((long)PacketId._SENDCHAT_, MakePacket<SendChat>);
 			_PacketHandlerDic.Add((long)PacketId._SENDCHAT_, SendChatHandler);
+			_OnReceiveHandlerDic.Add((long)PacketId._MOVECHANNEL_, MakePacket<MoveChannel>);
+			_PacketHandlerDic.Add((long)PacketId._MOVECHANNEL_, MoveChannelHandler);
 		}
 	}
 }
